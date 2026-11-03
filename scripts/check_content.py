@@ -7,7 +7,7 @@ import re
 import sys
 from pathlib import Path
 
-RANGES = {"textbook": (5000, 10000), "post": (900, 1100)}
+RANGES = {"textbook": (5000, 10000), "post": (1500, 1500)}
 
 
 def prose(text):
@@ -367,7 +367,7 @@ def main():
     count.add_argument("--stage", choices=RANGES, required=True)
     count.add_argument("--over-reason", default="",
                        help="仅 textbook 正文超过默认 10000 字时必填的非空理由；"
-                            "对 post（900—1100）与低于下限不生效，也不绕过 diagram/cover 检查。")
+                            "对 post（严格 1500，1499/1501 均拒绝）与低于下限不生效，也不绕过 diagram/cover 检查。")
     diagram = commands.add_parser("diagram")
     diagram.add_argument("file", type=Path)
     cover = commands.add_parser("cover")

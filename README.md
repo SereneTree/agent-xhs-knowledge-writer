@@ -9,7 +9,7 @@
 | 产物 | 规格（非空白可见字符口径，脚本实测） |
 |---|---|
 | 完整教材 | 5000—10000 字；确需超长须 `--over-reason` 说明不可删内容 |
-| 发布正文 | 900—1100 字，前置追加进同一份飞书云文档，教材模块完整保留在后 |
+| 发布正文 | 1500 字，前置追加进同一份飞书云文档，教材模块完整保留在后 |
 | 总结封面 | 1—2 个竖版 3:4 单元（参考 1080×1440），默认 1 张；密度不可读时并列分块为 2 张；0 张或 ≥3 张拒绝 |
 
 正文不是 100—200 字导语，封面不是吸睛海报：封面承担「一眼看完答题骨架」，正文承担「把面试问题讲清楚」。
@@ -21,7 +21,7 @@ A 选题思路（对话展示并登记 outline）
    ↓
 B 教材写作与复核（来源核验 / 代码可复现 / 字数与图结构检查 → 飞书云文档）
    ↓
-C 同文档前置追加 900—1100 字发布正文（云端回读 snapshot 证据）
+C 同文档前置追加 1500 字发布正文（云端回读 snapshot 证据）
    ↓
 D 1—2 张竖版 3:4 手绘总结封面（manifest 结构校验 + 逐页渲染证据）
 ```
@@ -89,7 +89,7 @@ python "$SKILL/scripts/stage_gate.py" --state "$TOPIC_DIR/workflow.json" migrate
 ## 质量门摘要
 
 - 教材：来源原文与版本留痕；代码 / schema / 参数可复现；`sources`、`counts` 必须 pass，其余范围可带理由 not_applicable。
-- 正文：900—1100 字硬边界；云文档模块顺序必须为 `post → textbook`，snapshot 实读 body 文件 hash。
+- 正文：1500 字硬边界；云文档模块顺序必须为 `post → textbook`，snapshot 实读 body 文件 hash。
 - 封面：单元数量、canvas 比例、page 标注、必备类别（problem / judgment / module / mechanism；failure / tradeoff / boundary 缺项须 `coverage_na` 理由）、`source_revision` 与教材 sha256 绑定；六项封面证据均须 `{status: pass, evidence: 逐项说明}`。
 
 ## 边界（不做事项）

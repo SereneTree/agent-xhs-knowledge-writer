@@ -313,7 +313,10 @@ def main():
                 from check_content import measure
                 measured = measure(args.file.read_text(encoding="utf-8"), "post")
                 if not measured["ok"]:
-                    raise ValueError(f"post length {measured['characters']} outside 900—1100")
+                    raise ValueError(
+                        f"post length must be exactly 1500 (got {measured['characters']}); "
+                        "1499 and 1501 both fail"
+                    )
                 check_snapshot(args.snapshot, tb["url"], item["sha256"], tb["sha256"])
                 state["artifacts"]["post"] = item
                 state["artifacts"]["post_snapshot"] = record(args.snapshot)
