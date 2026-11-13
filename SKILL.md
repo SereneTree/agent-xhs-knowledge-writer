@@ -1,6 +1,6 @@
 ---
 name: agent-xhs-knowledge-writer
-description: 为 AI Agent 方向校招/实习面试的计算机专业本科生与研究生（含研三/博三/应届硕士，开发岗为主）创作小红书发布稿。覆盖 Agent 架构、LangChain/LangGraph 等开发框架、Tools、Memory、RAG、Reflection 与面试题讲解。默认形态是”1—2 张竖版 3:4 手绘总结封面（默认 1 张；单图密度不可读时并列分块为 2 张）＋1500字完整发布正文（1500非空白可见字符）”，不是图卡合集、不是100—200字引导语。用户给出”大厂面试总结：…””大厂面试问：…”、要求 Agent 知识分享、系列教程或从教材生成小红书时使用。永久默认自动执行：思路对话展示并登记后不停顿→5000—10000字教材及来源/代码/图/渲染/字数复核并以飞书云文档交付回读→1500字压缩正文前置追加进同一份云文档（教材不覆盖）→1—2 张竖版 3:4 手绘全文总结封面（每单元可编辑源+预览）；各阶段不再逐篇等人确认，但质量不通过必须阻断。不用于普通技术问答、直接发布账号动作、求职结果承诺。
+description: 为 AI Agent 方向校招/实习面试的计算机专业本科生与研究生（含研三/博三/应届硕士，开发岗为主）创作小红书发布稿。覆盖 Agent 架构、LangChain/LangGraph 等开发框架、Tools、Memory、RAG、Reflection 与面试题讲解。默认形态是”1—2 张竖版 3:4 手绘总结封面（默认 1 张；单图密度不可读时并列分块为 2 张）＋1500字完整发布正文（1500非空白可见字符）”，不是图卡合集、不是100—200字引导语。用户给出”大厂面试总结：…””大厂面试问：…”、要求 Agent 知识分享、系列教程或从教材生成小红书时使用。永久默认自动执行：思路对话展示并登记后不停顿→5000—10000字教材及来源/代码/图/渲染/字数复核并以飞书云文档交付回读→1500字压缩正文前置追加进同一份云文档（教材不覆盖）→1—2 张竖版 3:4 手绘封面（每单元可编辑源+预览；封面分 V1/V2 两轨，新选题默认 V2，用户明确指定才走 V1 冻结轨）；各阶段不再逐篇等人确认，但质量不通过必须阻断。不用于普通技术问答、直接发布账号动作、求职结果承诺。
 ---
 
 # Agent 知识分享·小红书发布稿专家
@@ -28,7 +28,7 @@ description: 为 AI Agent 方向校招/实习面试的计算机专业本科生�
 ## 每次进入先做
 
 1. 从当前会话、用户指定目录读取该选题的最新 `workflow.json`；没有就初始化。不同题目使用独立目录，禁止拿另一篇的登记顶替。schema 为 1（旧版）时先 `migrate`。
-2. 判定主读者、主题尺度、输出阶段及未决事项。读 `references/editorial.md`；教材写作或复核再读 `references/technical-review.md`；封面再读 `references/cover-style.md`。
+2. 判定主读者、主题尺度、输出阶段及未决事项。读 `references/editorial.md`；教材写作或复核再读 `references/technical-review.md`；封面按阶段 D 版本路由读 `references/cover-style.md`〔V1〕或 `references/cover-style-v2.md`〔V2〕。
 3. 按宿主规则发现并 Read 对应技能后使用：
    - `i-have-adhd`：用清晰标题、短段、分组降低阅读负担；不砍教材深度，不机械强加行动句。
    - `doubao-human-signal`：处理空话、夸大、模板感；专业限定不能删，原文案例不能冒充经历。
@@ -81,22 +81,42 @@ description: 为 AI Agent 方向校招/实习面试的计算机专业本科生�
 
 ## 阶段 D：1—2 张手绘总结封面（竖版 3:4）
 
-- **封面 = 全文总结图集合**：默认 **1 张竖版 3:4 封面**覆盖教材核心章节与压缩正文的全部要点，不是吸睛海报、不是标题配图。仅当单图提炼层次后仍密度不可读（字号低于可读下限、节点重叠、连线交叉、安全区被占）时，才允许拆为 **2 张并列分块**：不设独立总览页，两页按主题切分、编号 ①/②，合起来必须覆盖全部要点。**0 张或 ≥3 张一律拒绝**。沿用米白纸纹、手绘双框、Purisa 英文 / Noto Sans CJK SC 中文与配色系统，规范见 `references/cover-style.md`。
-- **尺寸硬约束**：每个封面单元都是竖版 3:4（宽:高 = 3:4，参考 1080×1440；更高分辨率按同比例放大，字体/线宽/边距同步放大），不允许横版 4:3 或其他比例；manifest 的 `canvas` 字段如实声明并由脚本校验。
-- 覆盖范围：主问题与核心判断、核心模块及关系、主要机制或路径、工程取舍/参数/关键结论、重要失败分支及边界（主题没有的项写 `coverage_na` 理由，不凭空造参数或失败）。从真实教材核心章节 + 压缩正文逐点提炼，**不是先画好图再自己填点自证**；双页时全集要点仍须逐点落点，不能靠"另一页有"掩盖遗漏。
-- 封面登记 cover manifest：`title` + `diagram_type`（flow/structure/mixed）+ `legend` + 必填 `canvas: {ratio: "3:4", width, height}` + `source_revision` + `covers: [{source, preview}, ...]`（1—2 项；单张时兼容旧写法 `cover: {source, preview}`）+ `nodes`/`edges`（structure/mixed 可加 `regions`）+ `core_points` + `source_sections`。每个 core_point 带 `category`（problem/judgment/module/mechanism/tradeoff/failure/boundary，tradeoff 含选型与复杂度成本取舍）、`source: {doc, section}`、`summary`、`maps_to`（有效 node/region id）；双页时每个 core_point 另带 `page`（0/1，标注落在第几单元）。跑 `check_content.py cover`：封面单元数量不在 1—2、缺 `canvas` 或 canvas 非竖版 3:4、双页 core_point 缺 `page` 或 page 越界、缺 core_points、maps_to 指向不存在节点、缺必备类别、tradeoff/boundary/failure 无声遗漏、source_sections 有章节无映射无排除理由、flow 没有带两条标注边的 decision 且无 NA 理由都会被拦下。`source_revision` 必须等于 `textbook.txt` 的 sha256。
-- cover-review 六项证据（node_edge/render/semantic_review/coverage_check/render_mobile/style_check）均为 `{status: pass, evidence: 逐项说明}` 对象，不是裸 "pass"；双页时 render/node_edge/semantic_review/coverage_check/render_mobile 须逐单元（页①、页②）分别说明，fail 或无 evidence 拒绝。拆分理由、两页分工与各自承载的 core_point 写进证据与 `review.md`。
-- diagram_type 选最合适的：流程类用 flow（完整控制分支）；概念框架类用 structure（分组区域，不硬造 start/terminal/decision）；两者混合用 mixed。整份 manifest 共用一个 diagram_type 与一套节点/边清单；双页两页性质不同（一页流程、一页框架）时优先用 mixed，不允许两页拆成两份 manifest 分别登记。
-- 交付**可修改形式**：每个封面单元 = 可编辑源 + 预览（共 1—2 个单元），不硬锁 SVG/PNG/PPTX。逐节点/渲染证据写进 `cover-review.json`，接口见上文对象条目（六项均 `{status: pass, evidence: 逐项说明}`；`cover_files` 为与 `covers` 同序的列表，每项 `{source: {path, sha256}, preview: {path, sha256}}`）。
-- 封面后续可单独修改：重做逐节点/渲染证据 `cover-review.json` 后 `stage_gate.py cover-edit`；脚本先核教材与 post 当前 hash，stale 拒绝，**不改动 post、教材与云文档版本**。
-- 最终交付：以 `present_files` 交付同一飞书文档链接 + 封面可编辑源与预览文件；不做发布、私信、评论、关注或收费等账号动作。
+### 版本路由
+
+- 新选题默认 **V2**（实验风格，规范 `references/cover-style-v2.md`）；只有用户明确指定 V1 才走 V1（冻结规范 `references/cover-style.md`）。不按历史数据自动回切。
+- manifest、cover-review、workflow 三处记录同一 `cover_version`（`v1`/`v2`）；未知版本拒绝。历史已完成且未标版本的产物按 V1 兼容只读处理，不认作 V2，不回写旧记录。
+- 封面单独修改（`cover-edit`）必须显式选版，且与已登记 release 版本一致；跨版本重做不在旧 release 上换轨，而是在独立选题目录重新 `init` 另起新 revision，旧 release 归档只读、不回写。
+
+### 两轨共享约束
+
+- **单元数量**：默认 1 张；提炼层次后仍密度不可读（字号低于可读下限、节点重叠、连线交叉、安全区被占）才拆 2 张并列分块；0 张或 ≥3 张一律拒绝；双页无独立总览页，编号 ①/②。
+- **尺寸硬约束**：每个封面单元竖版 3:4（宽:高 = 3:4，参考 1080×1440；更高分辨率按同比例放大，字体/线宽/边距同步放大），不允许横版 4:3 或其他比例；manifest 的 `canvas` 字段如实声明并由脚本校验。
+- **manifest 结构**：`title` + `diagram_type`（flow/structure/mixed）+ `legend` + 必填 `canvas: {ratio: "3:4", width, height}` + `source_revision` + `cover_version` + `covers: [{source, preview}, ...]`（1—2 项；单张兼容旧写法 `cover: {source, preview}`）+ `nodes`/`edges`（structure/mixed 可加 `regions`）+ `core_points` + `source_sections`。每个 core_point 带 `category`（problem/judgment/module/mechanism/tradeoff/failure/boundary）、`source: {doc, section}`、`summary`、`maps_to`（有效 node/region id）；双页另带 `page`（0/1）。`source_revision` 必须等于 `textbook.txt` 的 sha256。
+- **diagram_type**：流程类 flow；概念框架类 structure（分组区域，不硬造 start/terminal/decision）；混合用 mixed。整份 manifest 共用一个 diagram_type 与一套节点/边清单，不允许拆成两份 manifest 分别登记。
+- **cover-review 六项证据**（node_edge/render/semantic_review/coverage_check/render_mobile/style_check）均为 `{status: pass, evidence: 逐项说明}` 对象，不是裸 "pass"；双页时 render/node_edge/semantic_review/coverage_check/render_mobile 须逐单元（页①、页②）分别说明，fail 或无 evidence 拒绝。拆分理由、两页分工与各自承载的 core_point 写进证据与 `review.md`。
+- **交付可修改形式**：每个封面单元 = 可编辑源 + 预览（共 1—2 个单元），不硬锁 SVG/PNG/PPTX；`cover_files` 为与 `covers` 同序的列表，每项 `{source: {path, sha256, version}, preview: {path, sha256, version}}`。**V2** 每条目 `version` 必填且为 `v2`；**V1** `version` 可选兼容。
+- 最终交付以 `present_files` 交付同一飞书文档链接 + 封面可编辑源与预览文件；不做发布、私信、评论、关注或收费等账号动作。
+
+### V1 专属（冻结，详见 `references/cover-style.md`）
+
+- 全集覆盖：封面集合须能复述完整答案；覆盖主问题/核心判断/核心模块及关系/主要机制或路径/工程取舍参数/重要失败分支及边界，主题没有的项写 `coverage_na` 理由。
+- 必备类别：`problem`/`judgment`/`module`/`mechanism` 四类全有。
+- 旧视觉：Purisa 英文 / Noto Sans CJK SC 中文黑体；参考资产 `memory-cover-reference.webp`、`multiagent-cover-reference.webp`。
+
+### V2 专属（当前默认，详见 `references/cover-style-v2.md`）
+
+- 信息取舍：主问题 + 一句核心判断 + 核心结构（流程主干或框架分区）+ 关键分支；必要收口主题无对应内容就不造节点/参数/失败路径。
+- 必备类别：`problem`/`judgment` 必需；`module` 或 `mechanism` 至少一类；详细参数、选型对比可带下沉 reason 不上封面。
+- 关键项：重要失败路径/改变结论的边界或前提用 `critical: true` 或 `critical_points` 显式登记；脚本只校验 source 登记字段合法（doc/section 非空且在章节清单内）与 maps_to 命中有效节点/分区，不得 NA 排除；source 对应正文是否属实、关键清单是否齐全，由人工语义证据确认，脚本不做重要性词匹配。
+- 视觉：中英均明显手写；中文黑体仅个别缺字 glyph 兜底且在证据中声明；短注关键词至多一行；不设独立脚注；关键条件在图内或正文承接，图本身不失真。
+- 参考锚点：`assets/cover-anchor-v2.webp`。
 
 ## 阶段与版本约束
 
 使用 `scripts/stage_gate.py` 记录与检查阶段。它是本地流程防呆，不是鉴权系统，也不能核实真人授权或云端内容。
 
 - 状态机：`new → outline_shown → textbook_done → post_done → done`。无逐篇人工确认闸门；质量门由 tb-review.json 结构化证据、字数/图结构脚本、doc-snapshot.json 回读证据、cover-review.json 封面证据承担。
-- 脚本可阻断：思路未登记直接写教材、教材无结构化证据或 URL、证据错 sha/范围 fail、未登记 post 直接 finish（阻断 A→D 直跳）、snapshot 版号空/模块反序/body_file 内容与本地不符、finish 缺教材或文件变动/URL 不一致/正文越界/封面结构或 source_revision 不符、封面单元数量不在 1—2、canvas 缺失或非竖版 3:4、双页 core_point 缺 page 或 page 越界、cover-review 未绑定当前 manifest 与各单元源/预览文件 hash，一律拒绝。
+- 脚本可阻断：思路未登记直接写教材、教材无结构化证据或 URL、证据错 sha/范围 fail、未登记 post 直接 finish（阻断 A→D 直跳）、snapshot 版号空/模块反序/body_file 内容与本地不符、finish 缺教材或文件变动/URL 不一致/正文越界/封面结构或 source_revision 不符、封面单元数量不在 1—2、canvas 缺失或非竖版 3:4、双页 core_point 缺 page 或 page 越界、cover-review 未绑定当前 manifest 与各单元源/预览文件 hash、cover_version 未知值或 manifest/workflow/review 三处版本不一致、V2 cover_files 条目缺/错 `version`、V2 关键项缺映射或被 NA 排除、cover-edit 未显式选版或跨版本套用 stale 证据，一律拒绝。
 - 恢复会话先读状态和最新文件，不依赖“好像登记过”。
 - 旧版（schema 1）workflow 先 `migrate`：历史 approvals 原话、history、实际文件全部保留；旧“已批准”不视为质量通过。
 
@@ -104,7 +124,8 @@ description: 为 AI Agent 方向校招/实习面试的计算机专业本科生�
 
 - [写作规范与分层讲解](references/editorial.md)：每篇开始读取。
 - [事实、代码、图与反例核验](references/technical-review.md)：教材前与交付前读取。
-- [手绘技术封面规范](references/cover-style.md)：出图前读取。配套工具 `scripts/sketch.py`（零依赖手绘 SVG 生成器）。
+- [V1 手绘封面规范（冻结）](references/cover-style.md)：用户指定 V1 时读取。配套工具 `scripts/sketch.py`（零依赖手绘 SVG 生成器）。
+- [V2 手绘封面规范（默认）](references/cover-style-v2.md)：新选题出图前读取。
 - [参考样式及可信度边界](references/sample-notes.md)：需要解释或更新样式时读取。
 - [流程工具用法](references/operations.md)：保存版本、复核与字数检查时读取。
 - [验证场景](references/acceptance-cases.md)：修改技能后检验，不随文章反复加载。

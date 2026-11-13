@@ -74,12 +74,14 @@
 
 小红书发布稿 = **1—2 张竖版 3:4 手绘封面（默认 1 张）+ 1500 字完整发布正文**。不做知识图卡轮播，也不写 100—200 字引导语。封面承担"一眼看完答题骨架"，正文承担"把面试问题讲清楚"。
 
-### 封面要求（1—2 个单元：默认一张，密度过高时两张并列分块）
+> 封面分 V1/V2 两轨：本节以下封面条目为 **V1 冻结口径**（全集复述、旧字体）；新选题默认 V2，信息取舍与视觉口径见 `cover-style-v2.md`。封面单元数量、3:4 尺寸、可编辑源+预览、1500 字正文等共享约束两轨通用。
+
+### 封面要求（V1：1—2 个单元，默认一张，密度过高时两张并列分块）
 
 - 每个封面单元都是竖版 3:4（宽:高=3:4，参考 1080×1440）；顶部主问题；中间按 diagram_type 展开：flow 画输入到输出的完整控制链路（含关键失败分支：哪一步断、重试/降级/中止各走哪条路），structure 画模块分区与关系，mixed 主干流程加框架分区；底部一句适用边界。学生光看封面集合（单页看一页，双页按 ①→② 看两页）能复述完整答案。
 - 手绘规范（米白纸纹、手绘框线、Purisa 英文 / Noto Sans CJK SC 中文、竖版 3:4 尺寸）见 `cover-style.md`。
 - 数量规则：默认 1 个单元；单页提炼层次后仍密度不可读（字号过小、节点重叠、连线交叉）时才拆 2 页并列分块，无总览页、两页合起来覆盖全集；0 个或 ≥3 个拒绝。拆分理由与两页分工写入 review.md。
-- 结构存 cover manifest 并用 `check_content.py cover` 校验：封面单元数量必须在 1—2；`canvas` 必填且为竖版 3:4；双页时每个 core_point 标注 `page`（0/1）；core_points 从教材核心章节+压缩正文提炼，problem/judgment/module/mechanism 必备，failure/tradeoff/boundary 缺项须写 coverage_na 理由；source_sections 每章要么有 core_point 要么有排除理由；flow 类须有带两条标注控制边的 decision（或失败确不适用的 NA 理由）。
+- 结构存 cover manifest 并用 `check_content.py cover` 校验：封面单元数量必须在 1—2；`canvas` 必填且为竖版 3:4；双页时每个 core_point 标注 `page`（0/1）；core_points 从教材核心章节+压缩正文提炼，**V1** problem/judgment/module/mechanism 必备，failure/tradeoff/boundary 缺项须写 coverage_na 理由；source_sections 每章要么有 core_point 要么有排除理由；flow 类须有带两条标注控制边的 decision（或失败确不适用的 NA 理由）。**V2** 类别口径：problem/judgment 必备，module/mechanism 至少一类，见 `cover-style-v2.md`。
 
 ### 正文（1500 字）
 

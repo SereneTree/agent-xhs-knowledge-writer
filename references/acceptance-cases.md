@@ -16,11 +16,30 @@
 - 教材有29个标题却只有27份完整答案：题数检查失败，补齐或据实修订标题，不能宣称全部回答。
 - 教材中“95%准确率的5个Agent必然只剩77%”：须交代串行依赖、全成功标准、独立/条件概率假设，复算并排除泛化。
 - 代码有未定义函数：标明示意或补全并运行；不贴“可运行”标签。
-- 教材复核后自动产出：1—2 个封面单元（默认 1 个；密度不可读时 2 个并列分块；cover manifest 校验通过、core_points 全集覆盖全文核心、canvas 竖版 3:4、双页带 page 标注）+ 1500 字完整发布正文，前置追加进同一份云文档，教材模块保留在后。
+- 教材复核后自动产出：1—2 个封面单元（默认 1 个；密度不可读时 2 个并列分块；cover manifest 校验通过、canvas 竖版 3:4、双页带 page 标注；V1 core_points 全集覆盖全文核心，V2 落主线结构与关键分支）+ 1500 字完整发布正文，前置追加进同一份云文档，教材模块保留在后。
 - 发布正文 1499 字或 1501 字：`post` 检查必须失败；写成 100—200 字引导语也必须失败（默认要完整正文，不是导语）。恰好 1500 字通过。
-- 封面单元数量 0 个或 ≥3 个：`cover` 检查必须失败；1 个单元通过；2 个并列分块单元且 core_points 全集覆盖、逐点带合法 page（0/1）、canvas 竖版 3:4 时通过。canvas 缺失、声明横版 4:3 或像素不满足 height ≈ width×4/3、双页 core_point 缺 page 或 page 越界：`cover` 检查必须失败。flow 封面缺失败分支（无 decision 且无 coverage_na.failure 理由）、core_points 缺必备类别、source_sections 有章节无映射无排除理由、region 无 label 或成员节点无效、tradeoff/boundary 无声遗漏、coverage_na 写成字符串导致校验异常：`cover` 检查必须失败。structure/mixed 不要求 decision；mixed 含 control 边的流程区域仍须分支完整。
+- 封面单元数量 0 个或 ≥3 个：`cover` 检查必须失败；1 个单元通过；2 个并列分块单元且逐点带合法 page（0/1）、canvas 竖版 3:4 时通过（V1 另须全集覆盖，V2 按主线结构与关键分支落点）。canvas 缺失、声明横版 4:3 或像素不满足 height ≈ width×4/3、双页 core_point 缺 page 或 page 越界：`cover` 检查必须失败。flow 封面缺失败分支（无 decision 且无 coverage_na.failure 理由）、core_points 缺必备类别（按版本：V1 四类全有；V2 缺 problem/judgment 或缺 module/mechanism 任一）、source_sections 有章节无映射无排除理由、region 无 label 或成员节点无效、tradeoff/boundary 无声遗漏、coverage_na 写成字符串导致校验异常：`cover` 检查必须失败。structure/mixed 不要求 decision；mixed 含 control 边的流程区域仍须分支完整。
 - 封面语义复核：semantic_review 只有一条"已核对全部"而无逐点走读、或 status=fail、或手机可读性/风格对照无 evidence：finish/cover-edit 必须拒绝。双单元时 node_edge/render/semantic_review/coverage_check/render_mobile 未逐页（页①、页②）分别说明、或两页合起来缺必备类别/core_point、或跨页连线跨页拉到另一页节点：必须拒绝。
 - `covers:[一项]` 单文件历史成品若声称可编辑，cover-review 须说明修改方式；不强制两个不同格式文件。
+
+### 封面版本路由（V1/V2）
+
+- 新 `init` 的 workflow 默认 `cover_version: "v2"`；未显式指定时走 V2，不按数据自动回切。
+- V1 夹具（无 `cover_version` 或缺省）按 V1 兼容通过旧四必备校验；V1 缺 module 或缺 mechanism：`cover` 检查必须失败。
+- V2 夹具：problem+judgment+mechanism、无 module，详细参数章节带下沉 reason：通过。
+- V2 缺 problem 或缺 judgment：必须失败；V2 module 与 mechanism 双缺：必须失败。
+- `cover_version: "v3"`（空串、拼写错误等未知值）：`cover` 检查与 finish 必须拒绝。
+- 历史已完成且无版本标记的状态：按 V1 兼容只读路由；对其提交 V2 manifest 必须拒绝；历史 workflow 文件不得被改写为 v2。
+- 新流程显式 `--cover-version v1`：状态记录 v1，V1 manifest 通过；manifest 版本与 workflow 版本不一致：finish 必须拒绝。
+- cover-edit 未带 `--cover-version`、或所选版本与 release 记录不一致、或套用另一版 stale 证据：必须拒绝；跨版本重做需新 revision 记录，不允许无声换轨。
+- manifest / cover-review / cover_files 三处版本必须一致；review 版本与 manifest 不符：finish/cover-edit 必须拒绝。
+- **V2 每图版本**：cover-review `cover_files` 每个源/预览条目缺 `version`、或标成 v1 而期望 v2：finish/cover-edit 必须拒绝；V1 条目不带 `version` 仍兼容通过。
+- flow 缺失败分支且无 `coverage_na.failure`：V1/V2 均必须拒绝；列出章节既无映射也无排除理由：两轨均拒绝。
+- **V2 关键项（critical）小门**：关键 failure/boundary 缺有效 `maps_to`、其章节被列入 `coverage_na.sections`、关键类别仅靠 `coverage_na.<类别>` 理由豁免、critical id 重复：`cover` 检查必须拒绝；登记齐全且映射有效时通过。同形状 NA 排除在 V1 下仍按旧四必备门处理，不触发新增 V2 门。
+- 关键清单是否齐全（哪些失败/条件算关键）不由脚本判定：由 semantic_review/coverage_check 逐点人工证据确认；脚本不做重要性词匹配。
+- **跨版本重做**：已完成旧 V1 release 不得被 cover-edit 改成 V2；换轨须在独立选题目录重新 `init`（默认 v2）另起新 revision，旧 release 归档只读、不回写；测试须断言旧 release 版本与 hash 未被改写。
+- 把重要失败路径或改变结论的条件写成下沉排除：脚本不做语义拦截（能力边界如实记录），由 semantic_review/coverage_check 人工证据判失败，不用词匹配冒充语义安全。
+
 - finish 时 --doc-url 与教材登记 URL 不一致、source_revision 不等于 textbook.txt sha256、或教材文件丢失/变动：脚本必须拒绝（错误文档URL/教材sha/教材丢失）。
 - 旧版（schema 1，含 idea_wait/textbook_wait/approve）workflow：必须显式 `migrate`；历史 approvals 原话、history、实际文件保留，旧“已批准”不视为质量通过；迁移后按新流程复核当前版本。
 - 发布模块顺序错（正文未前置、教材被覆盖）：属云端回读必须发现的问题，回读证据写进 doc-snapshot.json（门证据：模块顺序、body_file 实读 hash）；叙述性说明写进 review.md。本地脚本只核验附件一致性，不声称已验证真实飞书内容。

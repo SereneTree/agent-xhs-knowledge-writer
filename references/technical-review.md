@@ -44,7 +44,7 @@
 4. 终止、失败、超时、人工确认以及预算耗尽路径是否按本图范围表达；简化省略项在图注中交代。
 5. 标签、状态、数字、模型/框架名与正文、代码一致；正常路径不能被画成必经失败决策；停止节点不能默认向成功答案连线。
 
-使用 `check_content.py diagram` 只检查 ID、引用、孤点、不可达、分支标签等基础结构。封面另存 cover manifest，`check_content.py cover` 强制封面单元 1—2 个、canvas 为竖版 3:4、双页 core_points 带 page 标注，且 core_points 全集覆盖教材核心章节与压缩正文（含失败分支或 NA 理由）；审阅者必须另外逐点逐页逐边走读正常和失败案例，检查概念含义，字段齐不等于语义覆盖完整。
+使用 `check_content.py diagram` 只检查 ID、引用、孤点、不可达、分支标签等基础结构。封面另存 cover manifest，`check_content.py cover` 强制封面单元 1—2 个、canvas 为竖版 3:4、双页 core_points 带 page 标注、版本一致；**V1** 要求 core_points 全集覆盖教材核心章节与压缩正文（含失败分支或 NA 理由），**V2** 按 `cover-style-v2.md` 取舍主线结构与关键分支、详细章节带下沉 reason；重要失败/条件以 `critical`/`critical_points` 登记且不得 NA 排除，关键清单是否齐全由审阅者逐点确认。两轨都要求审阅者另外逐点逐页逐边走读正常和失败案例，检查概念含义，字段齐不等于语义覆盖完整。
 
 ## 渲染后检查
 

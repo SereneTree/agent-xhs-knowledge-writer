@@ -117,7 +117,12 @@ def check_diagram(data):
 
 
 CORE_CATEGORIES = {"problem", "judgment", "module", "mechanism", "tradeoff", "failure", "boundary"}
-REQUIRED_CATEGORIES = {"problem", "judgment", "module", "mechanism"}
+COVER_VERSIONS = ("v1", "v2")
+# V1 (frozen legacy): problem/judgment/module/mechanism all required.
+REQUIRED_CATEGORIES_V1 = {"problem", "judgment", "module", "mechanism"}
+# V2: problem/judgment required; at least one of module/mechanism.
+REQUIRED_CATEGORIES_V2 = {"problem", "judgment"}
+REQUIRED_ANY_V2 = {"module", "mechanism"}
 
 
 COVER_MIN_UNITS, COVER_MAX_UNITS = 1, 2
@@ -175,6 +180,79 @@ def _parse_cover_units(data, errors):
     return units
 
 
+def _check_v2_critical(data, valid_targets, units, excluded, listed_keys, errors):
+    """V2-only critical-point registry gate.
+
+    Critical failures/conditions can be marked either by ``"critical": true`` on a
+    core_point, or listed in a top-level ``critical_points`` array (same shape).
+    The machine only verifies registration, legal source fields, valid mapping targets and
+    that a critical item is not NA-excluded. Whether the critical list is complete
+    is a human semantic review duty (semantic_review / coverage_check evidence);
+    keyword matching must not be used to claim semantic safety. V1 gets no gate
+    here.
+    """
+    flagged = [cp for cp in (data.get("core_points") or [])
+               if isinstance(cp, dict) and cp.get("critical") is True]
+    extra = data.get("critical_points")
+    if extra is not None and not isinstance(extra, list):
+        errors.append("[v2] critical_points must be a list (or omitted)")
+        extra = []
+    elif extra is None:
+        extra = []
+    critical = list(extra) + flagged
+    seen = set()
+    critical_sections = set()
+    critical_cats = set()
+    core_cats = {cp.get("category") for cp in (data.get("core_points") or [])
+                 if isinstance(cp, dict)}
+    for i, c in enumerate(critical):
+        where = f"critical_points[{i}]"
+        if not isinstance(c, dict):
+            errors.append(f"[v2] {where} must be an object")
+            continue
+        cid = c.get("id")
+        if not cid or cid in seen:
+            errors.append(f"[v2] {where} needs a unique non-empty id")
+        seen.add(cid)
+        cat = c.get("category")
+        if cat not in CORE_CATEGORIES:
+            errors.append(f"[v2] {where} category must be one of {sorted(CORE_CATEGORIES)}")
+        critical_cats.add(cat)
+        src = c.get("source")
+        if not (isinstance(src, dict) and src.get("doc") in {"textbook", "post"}
+                and str(src.get("section", "")).strip()):
+            errors.append(f"[v2] {where} source must be {{doc: textbook|post, section: '...'}}")
+        else:
+            critical_sections.add((src["doc"], src["section"]))
+        if not str(c.get("summary", "")).strip():
+            errors.append(f"[v2] {where} needs a summary of the critical point")
+        targets = c.get("maps_to")
+        if not isinstance(targets, list) or not targets:
+            errors.append(f"[v2] {where} needs non-empty maps_to")
+        else:
+            for t in targets:
+                if t not in valid_targets:
+                    errors.append(f"[v2] {where} maps_to {t!r} is not a node/region id")
+        if len(units) >= 2:
+            page = c.get("page")
+            if page is None:
+                errors.append(f"[v2] {where} on a {len(units)}-unit manifest needs page: 0 or {len(units)-1}")
+            elif not (isinstance(page, int) and not isinstance(page, bool)
+                      and 0 <= page < len(units)):
+                errors.append(f"[v2] {where} page must be an integer in 0—{max(0, len(units)-1)}")
+    for key in critical_sections:
+        if key in excluded:
+            errors.append(f"[v2] critical section {key[0]} {key[1]!r} is listed in "
+                          "coverage_na.sections; a critical failure/condition cannot be NA-excluded")
+        if listed_keys and key not in listed_keys:
+            errors.append(f"[v2] critical source {key[0]} {key[1]!r} is not in source_sections")
+    for cat in ("failure", "tradeoff", "boundary"):
+        if cat in critical_cats and cat not in core_cats:
+            errors.append(f"[v2] critical {cat} must be a real mapped core_point; "
+                          f"it cannot be excused by a coverage_na.{cat} reason")
+    return len(critical)
+
+
 def check_canvas(data, errors):
     """Every cover unit must be portrait 3:4 (width:height = 3:4, e.g. 1080x1440)."""
     canvas = data.get("canvas")
@@ -195,7 +273,8 @@ def check_canvas(data, errors):
 
 
 def check_cover(data):
-    # Cover = a summary map of the whole text, not a poster/title decoration.
+    # Cover = a structured summary map per the selected cover version,
+    # not a poster/title decoration.
     # 1—2 cover units (default one; two only when one page gets unreadable).
     # diagram_type flow/structure/mixed; flow: full control branches incl.
     # >=1 decision with 2 labelled control edges.
@@ -207,6 +286,14 @@ def check_cover(data):
         return {"ok": False, "errors": ["cover manifest must be an object"]}
     units = _parse_cover_units(data, errors)
     check_canvas(data, errors)
+    raw_version = data.get("cover_version")
+    if raw_version is None:
+        cover_version = "v1"  # legacy unversioned manifest: V1-compatible routing
+    elif raw_version in COVER_VERSIONS:
+        cover_version = raw_version
+    else:
+        errors.append(f"cover_version must be one of {COVER_VERSIONS}, got {raw_version!r}")
+        cover_version = "v1"
     if not data.get("source_revision"):
         errors.append("missing source_revision")
     if not data.get("title"):
@@ -262,6 +349,7 @@ def check_cover(data):
                 if m not in node_ids:
                     errors.append(f"{where} {r['id']!r} member {m!r} is not a node id")
     valid_targets = node_ids | region_ids
+    critical_count = 0
     core_points = data.get("core_points")
     if not isinstance(core_points, list) or not core_points:
         errors.append("core_points required: map textbook/post points to nodes/regions")
@@ -303,15 +391,24 @@ def check_cover(data):
             elif not (isinstance(page, int) and not isinstance(page, bool)
                       and 0 <= page < len(units)):
                 errors.append(f"{where} page must be an integer in 0—{max(0, len(units)-1)}")
-        missing = REQUIRED_CATEGORIES - cats
-        if missing:
-            errors.append(f"core_points missing required categories: {sorted(missing)}")
+        if cover_version == "v1":
+            missing = REQUIRED_CATEGORIES_V1 - cats
+            if missing:
+                errors.append(f"[v1] core_points missing required categories: {sorted(missing)}")
+        else:
+            missing = REQUIRED_CATEGORIES_V2 - cats
+            if missing:
+                errors.append(f"[v2] core_points missing required categories: {sorted(missing)}")
+            if not (REQUIRED_ANY_V2 & cats):
+                errors.append("[v2] core_points need at least one of module or mechanism")
         for opt in ("failure", "tradeoff", "boundary"):
             if opt not in cats and not str(na.get(opt, "")).strip():
                 errors.append(f"no {opt} point: add a core_point or a coverage_na.{opt} reason")
         # source_sections completeness: every listed chapter must be covered or excluded;
         # every core_point section must be listed; at least one textbook + one post listed.
         listed = data.get("source_sections", [])
+        listed_keys = set()
+        excluded = set()
         if not isinstance(listed, list) or not listed:
             errors.append("source_sections required: list textbook/post chapters used to build the summary")
         else:
@@ -347,14 +444,21 @@ def check_cover(data):
                     errors.append(f"{where} {key[0]} {key[1]!r} is both covered and excluded")
             for key in listed_keys - covered_sections - excluded:
                 errors.append(f"source section {key[0]} {key[1]!r} has no core_point and no exclusion reason")
+        if cover_version == "v2":
+            critical_count = _check_v2_critical(data, valid_targets, units, excluded,
+                                                listed_keys, errors)
+        else:
+            critical_count = 0
     canvas = data.get("canvas") if isinstance(data.get("canvas"), dict) else {}
     return {"ok": not errors,
             "cover_count": len(units),
             "cover_units": units,
+            "cover_version": cover_version,
             "canvas_ratio": canvas.get("ratio"),
             "diagram_type": diagram_type,
             "decision_count": len(decision_nodes),
             "core_point_count": len(core_points) if isinstance(core_points, list) else 0,
+            "critical_point_count": critical_count,
             "errors": errors,
             "note": "Structural coverage check only; independent semantic rendered review still required."}
 

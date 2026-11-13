@@ -10,7 +10,7 @@
 |---|---|
 | 完整教材 | 5000—10000 字；确需超长须 `--over-reason` 说明不可删内容 |
 | 发布正文 | 1500 字，前置追加进同一份飞书云文档，教材模块完整保留在后 |
-| 总结封面 | 1—2 个竖版 3:4 单元（参考 1080×1440），默认 1 张；密度不可读时并列分块为 2 张；0 张或 ≥3 张拒绝 |
+| 总结封面 | 1—2 个竖版 3:4 单元（参考 1080×1440），默认 1 张；密度不可读时并列分块为 2 张；0 张或 ≥3 张拒绝。封面分 V1（冻结）/V2（当前默认）两轨，manifest 记 `cover_version` |
 
 正文不是 100—200 字导语，封面不是吸睛海报：封面承担「一眼看完答题骨架」，正文承担「把面试问题讲清楚」。
 
@@ -82,15 +82,16 @@ python "$SKILL/scripts/stage_gate.py" --state "$TOPIC_DIR/workflow.json" migrate
 ## 封面规则要点
 
 - **尺寸硬约束**：每个单元竖版 `3:4`（宽:高 = 3:4，参考 1080×1440）；manifest 必填 `canvas: {"ratio": "3:4", "width": 1080, "height": 1440}`，脚本校验 `height > width` 且 `height ≈ width×4/3（±1%）`。
-- **数量规则**：默认 1 单元；提炼层次后仍密度不可读（字号过小、节点重叠、连线交叉、安全区被占）才拆 2 页并列分块；拆分理由与两页分工写入证据文件。双页无独立总览页，共用一份 manifest / diagram_type / 节点清单，`core_points` 逐个标注 `page: 0|1`，全集覆盖必备类别。
+- **数量规则**：默认 1 单元；提炼层次后仍密度不可读（字号过小、节点重叠、连线交叉、安全区被占）才拆 2 页并列分块；拆分理由与两页分工写入证据文件。双页无独立总览页，共用一份 manifest / diagram_type / 节点清单，`core_points` 逐个标注 `page: 0|1`。
+- **版本路由**：新选题默认 V2（`cover-style-v2.md`，锚点 `assets/cover-anchor-v2.webp`）；用户明确指定才走 V1（`cover-style.md`，旧两张参考资产）。manifest / workflow / cover-review 三处版本一致，未知版本拒绝；V2 每条 cover_files 记录 `version`，V1 可选兼容；历史未标版按 V1 兼容只读，不回写。跨版本重做在独立目录重新 init 另起 revision，不回写旧 release。
 - **可编辑形式**：每个单元 = 可编辑源 + 预览；manifest 用 `covers: [{source, preview}, ...]`（1—2 项），单张兼容 `cover: {source, preview}`。
-- **手绘特征**：框线抖动重描、手绘两笔箭头（不用规整 marker）、英文数字用手写体；渲染后须逐节点、逐标签、手机宽度复核。
+- **手绘特征**：框线抖动重描、手绘两笔箭头（不用规整 marker）；V2 中英均明显手写，中文黑体仅个别 glyph 兜底；渲染后须逐节点、逐标签、手机宽度复核。
 
 ## 质量门摘要
 
 - 教材：来源原文与版本留痕；代码 / schema / 参数可复现；`sources`、`counts` 必须 pass，其余范围可带理由 not_applicable。
 - 正文：1500 字硬边界；云文档模块顺序必须为 `post → textbook`，snapshot 实读 body 文件 hash。
-- 封面：单元数量、canvas 比例、page 标注、必备类别（problem / judgment / module / mechanism；failure / tradeoff / boundary 缺项须 `coverage_na` 理由）、`source_revision` 与教材 sha256 绑定；六项封面证据均须 `{status: pass, evidence: 逐项说明}`。
+- 封面：单元数量、canvas 比例、page 标注、版本一致、必备类别（V1：problem / judgment / module / mechanism；V2：problem / judgment + module/mechanism 至少一类；failure / tradeoff / boundary 缺项须 `coverage_na` 理由）、V2 关键项（`critical`/`critical_points`）映射有效且不被 NA 排除、`source_revision` 与教材 sha256 绑定；六项封面证据均须 `{status: pass, evidence: 逐项说明}`。关键清单齐全性由人工语义证据承担。
 
 ## 边界（不做事项）
 

@@ -26,6 +26,21 @@ STATES = {"new", "outline_shown", "textbook_done", "post_done", "done"}
 AUTHORIZATION = "取消逐篇人工确认，按原步骤顺序自动执行；不跳过质量检查。"
 TB_SCOPES = ("sources", "code", "diagram", "render", "counts")
 NEVER_NA = {"sources", "counts"}  # always required, never not_applicable
+COVER_VERSIONS = ("v1", "v2")
+
+
+def resolve_cover_version(value, field):
+    """Route a cover version field.
+
+    Missing version on a legacy completed artifact reads back as V1
+    (read-only compatible); old records are never rewritten as V2.
+    Any explicit value outside v1/v2 is rejected as unknown.
+    """
+    if value is None:
+        return "v1"
+    if value not in COVER_VERSIONS:
+        raise ValueError(f"{field} must be v1 or v2, got {value!r}")
+    return value
 
 
 def stamp():
@@ -110,8 +125,12 @@ def check_snapshot(snap_path, doc_url, post_sha, tb_sha):
     return s
 
 
-def check_cover_review(path, tb_sha, post_sha, manifest_path, cover_files):
+def check_cover_review(path, tb_sha, post_sha, manifest_path, cover_files, expected_version=None):
     ev = load_json(path, "cover review")
+    review_ver = resolve_cover_version(ev.get("cover_version"), "cover-review cover_version")
+    if expected_version is not None and review_ver != expected_version:
+        raise ValueError(f"cover-review version {review_ver} does not match manifest "
+                         f"version {expected_version}")
     if ev.get("textbook_sha256") != tb_sha:
         raise ValueError("cover review not bound to the current textbook version")
     if ev.get("post_sha256") != post_sha:
@@ -155,6 +174,18 @@ def check_cover_review(path, tb_sha, post_sha, manifest_path, cover_files):
             raise ValueError("cover review cover_files entry missing path")
         if decl.get("sha256") != digest(actual_path):
             raise ValueError("cover review cover_files entry not bound to actual file hash")
+        if expected_version == "v2":
+            # V2: every cover file records its own version; missing it is rejected.
+            if not str(decl.get("version", "")).strip():
+                raise ValueError(f"cover file {decl.get('path')} must record version v2 "
+                                 "(V2 requires per-file cover_version)")
+            if decl["version"] != expected_version:
+                raise ValueError(f"cover file {decl.get('path')} version {decl['version']} "
+                                 f"does not match {expected_version}")
+        elif expected_version is not None and decl.get("version") \
+                and decl["version"] != expected_version:
+            raise ValueError(f"cover file {decl.get('path')} version {decl['version']} "
+                             f"does not match {expected_version}")
     for field in ("source_editable", "preview_verified"):
         if not str(ev.get(field, "")).strip():
             raise ValueError(f"cover review {field} must explain in non-empty text")
@@ -224,9 +255,15 @@ def main():
     p.add_argument("--cover-manifest", type=Path, required=True)
     p.add_argument("--cover-review", type=Path, required=True)
     p.add_argument("--doc-url", required=True)
+    p.add_argument("--cover-version", choices=COVER_VERSIONS, default=None,
+                   help="explicit cover version selection; must match manifest. "
+                        "new topics default v2; legacy unversioned artifacts route v1.")
     p = sub.add_parser("cover-edit")
     p.add_argument("--cover-manifest", type=Path, required=True)
     p.add_argument("--cover-review", type=Path, required=True)
+    p.add_argument("--cover-version", choices=COVER_VERSIONS, required=True,
+                   help="explicit version for the cover edit; must match the recorded "
+                        "release version; no silent cross-version switch.")
     sub.add_parser("migrate")
     sub.add_parser("status")
     args = parser.parse_args()
@@ -239,6 +276,7 @@ def main():
                 raise ValueError("existing parent and nonempty topic are required")
             state = {"schema_version": 2, "topic": args.topic.strip(), "stage": "new",
                      "auto_policy": True, "authorization": AUTHORIZATION,
+                     "cover_version": "v2",
                      "doc": None, "artifacts": {}, "history_files": [],
                      "approvals": {}, "history": []}
             event = {"action": "init", "at": stamp()}
@@ -348,17 +386,33 @@ def main():
                 raise ValueError(f"cover manifest invalid: {cover_check['errors']}")
             if manifest.get("source_revision") != tb["sha256"]:
                 raise ValueError("cover source_revision must equal textbook.txt sha256")
+            manifest_ver = resolve_cover_version(manifest.get("cover_version"),
+                                                 "cover manifest cover_version")
+            state_ver = resolve_cover_version(state.get("cover_version"),
+                                              "workflow cover_version")
+            if args.cover_version:
+                explicit_ver = resolve_cover_version(args.cover_version, "--cover-version")
+                if explicit_ver != manifest_ver:
+                    raise ValueError("explicit --cover-version does not match manifest cover_version")
+                state_ver = explicit_ver
+            if state_ver != manifest_ver:
+                raise ValueError(
+                    f"cover manifest version {manifest_ver} does not match workflow "
+                    f"version {state_ver}; historical unversioned artifacts stay V1-compatible")
             cover_files = resolve_cover_files(manifest, manifest_path.parent)
             if any(not Path(c).stat().st_size for c in cover_files):
                 raise ValueError("cover source/preview files must not be empty")
             check_cover_review(args.cover_review, tb["sha256"], post["sha256"],
-                               manifest_path, cover_files)
+                               manifest_path, cover_files, expected_version=manifest_ver)
+            if args.cover_version:
+                state["cover_version"] = manifest_ver
             state["artifacts"]["release"] = {
                 "post": post,
                 "cover_manifest": record(manifest_path),
                 "covers": [record(c) for c in cover_files],
                 "cover_review": record(args.cover_review),
                 "snapshot": state["artifacts"]["post_snapshot"],
+                "cover_version": manifest_ver,
                 "textbook_sha256": tb["sha256"],
                 "doc_url": tb["url"],
                 "doc_version": snap["doc_version"]}
@@ -387,14 +441,26 @@ def main():
                 raise ValueError(f"cover manifest invalid: {cover_check['errors']}")
             if manifest.get("source_revision") != tb["sha256"]:
                 raise ValueError("cover source_revision must equal current textbook sha256")
+            rel_ver = resolve_cover_version(rel.get("cover_version"), "release cover_version")
+            edit_ver = resolve_cover_version(args.cover_version, "--cover-version")
+            if edit_ver != rel_ver:
+                raise ValueError(
+                    "cover-edit version does not match the recorded release version; "
+                    "remaking on another version needs a new revision record, not a silent edit")
+            manifest_ver = resolve_cover_version(manifest.get("cover_version"),
+                                                 "cover manifest cover_version")
+            if manifest_ver != rel_ver:
+                raise ValueError(f"cover manifest version {manifest_ver} does not match "
+                                 f"release version {rel_ver}")
             cover_files = resolve_cover_files(manifest, manifest_path.parent)
             if any(not Path(c).stat().st_size for c in cover_files):
                 raise ValueError("cover source/preview files must not be empty")
             check_cover_review(args.cover_review, tb["sha256"], post["sha256"],
-                               manifest_path, cover_files)
+                               manifest_path, cover_files, expected_version=rel_ver)
             rel["cover_manifest"] = record(manifest_path)
             rel["covers"] = [record(c) for c in cover_files]
             rel["cover_review"] = record(args.cover_review)
+            rel["cover_version"] = rel_ver
 
         elif args.cmd == "migrate":
             if state.get("schema_version") == 2:
@@ -433,6 +499,7 @@ def main():
                 state.update({"schema_version": 2, "stage": new_stage,
                               "auto_policy": True, "authorization": AUTHORIZATION,
                               "doc": (tb or {}).get("url"),
+                              "cover_version": state.get("cover_version") or "v1",
                               "migrated_from": old_stage,
                               "old_approvals_note": "preserved as history; old approvals are not quality passes"})
                 event.update({"migrated_from": old_stage, "new_stage": new_stage})
