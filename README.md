@@ -40,6 +40,7 @@ D 1—2 张竖版 3:4 手绘总结封面（manifest 结构校验 + 逐页渲染�
 | `references/sample-notes.md` | 历史对标笔记复盘与可信度边界（存档口径，不反向约束现行规则） |
 | `references/acceptance-cases.md` | 修改技能后的行为验收场景 |
 | `scripts/check_content.py` | 字数统计、排版结构检查（教材顺序要点换行 / 发布稿 h1 分节与键帽成行）、教材 diagram 结构检查、封面 manifest 结构检查 |
+| `scripts/check_v2_eyebrow.py` | V2 封面顶部眉题预检（SVG/HTML 文本源；V1 不调用；非文本成品跳过机检转人工核对） |
 | `scripts/stage_gate.py` | 阶段登记与阻断校验：hash 绑定、证据齐全、顺序与数量门 |
 | `scripts/sketch.py` | 零依赖手绘 SVG 图元生成器（标准库 random + math，固定种子可复现） |
 | `assets/` | 两张封面风格参考图（仅提取版式 / 线条 / 色彩气质，不直接发布） |
@@ -86,12 +87,13 @@ python "$SKILL/scripts/stage_gate.py" --state "$TOPIC_DIR/workflow.json" migrate
 - **版本路由**：新选题默认 V2（`cover-style-v2.md`，锚点 `assets/cover-anchor-v2.webp`）；用户明确指定才走 V1（`cover-style.md`，旧两张参考资产）。manifest / workflow / cover-review 三处版本一致，未知版本拒绝；V2 每条 cover_files 记录 `version`，V1 可选兼容；历史未标版按 V1 兼容只读，不回写。跨版本重做在独立目录重新 init 另起 revision，不回写旧 release。
 - **可编辑形式**：每个单元 = 可编辑源 + 预览；manifest 用 `covers: [{source, preview}, ...]`（1—2 项），单张兼容 `cover: {source, preview}`。
 - **手绘特征**：框线抖动重描、手绘两笔箭头（不用规整 marker）；V2 中英均明显手写，捆绑配对中文 `LXGW WenKai`、英文默认 `Patrick Hand`、备 `Caveat`（仅显式选择，不自动回切）；固定字样锚点 `assets/font-anchor-patrick-hand.png`；中文缺字 preflight fail，不自动回落黑体或系统楷体，英文无 generic cursive；渲染后须逐节点、逐标签、手机宽度复核。
+- **顶部无眉题**：V2 封面顶部第一排只排具体大标题，不加栏目/系列/期次/主题小标签；文本源经 `check_v2_eyebrow.py` 预检，非文本成品由渲染人工核对并写入 style_check 证据。
 
 ## 质量门摘要
 
 - 教材：来源原文与版本留痕；代码 / schema / 参数可复现；`sources`、`counts` 必须 pass，其余范围可带理由 not_applicable；顺序要点（第一、/第一点/第一，等）逐项换行，结构机检只认明确枚举标记，不误报首先/其次/第一步/第一次。
-- 正文：1500 字硬边界；每个主题小节用 h1「一、二、三、」编号、小节内禁用低级标题，段内 1️⃣2️⃣3️⃣ 逐项成行且小节内从 1️⃣ 重新编号（结构机检，不替代语义复核）；云文档模块顺序必须为 `post → textbook`，snapshot 实读 body 文件 hash。
-- 封面：单元数量、canvas 比例、page 标注、版本一致、必备类别（V1：problem / judgment / module / mechanism；V2：problem / judgment + module/mechanism 至少一类；failure / tradeoff / boundary 缺项须 `coverage_na` 理由）、V2 关键项（`critical`/`critical_points`）映射有效且不被 NA 排除、`source_revision` 与教材 sha256 绑定；六项封面证据均须 `{status: pass, evidence: 逐项说明}`。关键清单齐全性由人工语义证据承担。
+- 正文：1500 字硬边界；每个主题小节用 h1「一、二、三、」编号、小节内禁用低级标题，段内 1️⃣2️⃣3️⃣ 逐项成行且小节内从 1️⃣ 重新编号（结构机检，不替代语义复核）；结尾固定句「关于<主题词>相关问题，欢迎一起交流～」，标签在其前，句后无正文或标签；云文档模块顺序必须为 `post → textbook`，snapshot 实读 body 文件 hash。
+- 封面：单元数量、canvas 比例、page 标注、版本一致、必备类别（V1：problem / judgment / module / mechanism；V2：problem / judgment + module/mechanism 至少一类；failure / tradeoff / boundary 缺项须 `coverage_na` 理由）、V2 关键项（`critical`/`critical_points`）映射有效且不被 NA 排除、V2 顶部无栏目/系列/期次/主题眉题（文本源预检 + 非文本成品人工核对）、`source_revision` 与教材 sha256 绑定；六项封面证据均须 `{status: pass, evidence: 逐项说明}`。关键清单齐全性由人工语义证据承担。
 
 ## 边界（不做事项）
 

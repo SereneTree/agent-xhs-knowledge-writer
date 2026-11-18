@@ -78,8 +78,8 @@ description: 为 AI Agent 方向校招/实习面试的计算机专业本科生�
 - 回读云文档：摘出前置发布模块与教材模块，逐内容/hash 对照本地 `post.txt` 与 `textbook.txt`，确认前置位置正确、同一 URL、教材完整；回读证据写成 `doc-snapshot.json`（同 URL、doc 版号、modules 顺序 post→textbook、两模块 body_file 实读算 hash），随 finish 登记校验。**本地脚本只能核验本地附件一致性，不能声称已验证真实飞书内容；云端核对结论以实际回读为准。**
 - 阶段 C 全部证据（教材复核、snapshot、post 字数）通过后才进入 D 画封面。
 - 小红书竖屏排版规则保留（详见 `references/editorial.md`）：每个主题小节/段落组用 `h1` 标题并以「一、二、三、」编号（按小节分组，不是每个自然段都套 h1；小节内禁用 h2/h3 等低级标题）；段内成列内容用 `1️⃣`、`2️⃣`、`3️⃣` 键帽逐项独立成行，编号在每个小节内从 1️⃣ 重新开始；序号 emoji 承担列表结构，`✅`/`❌` 仅在正反对照需要时使用且带完整主语和理由，不强制每个判定都套 emoji；枚举条目 = 标签行 + 解释行；标题可写判断句，问句内核保留在标题内（如「三、人工确认：人同不同意？」），旧式 `第 2️⃣ 道 …？` 键帽编号标题废止；术语后先一句自然中文定义再给例子，不强制英文 token 对照堆叠；相近维度显式区分；飞书原生 `<ul><li>` / 关键处 `<b>`；第一行直接进第一个小标题，不写铺垫段。
-- **硬约束（rev60 样文沉淀）**：正文与图面不出现"我归纳的""我判断的""这是我归纳的"等作者元说明；不出现"备考教学案例，非真实大厂题库"等多余免责声明；必要适用条件与准确来源必须保留，但不用作者姿态撑专业。结尾以一句简短主题相关交流邀约可选，无强制 CTA、不机械强塞金句、无咨询入口硬塞。
-- 标签固定 8—10 个：求职场景占 60%（#校招 #秋招 #面试经验 #大厂实习 #求职辅导 #程序员），技术标签占 40%（#agent #LangChain #AI面试 等按选题选）。标签单列在交付回复或文档末尾，不进正文段落。
+- **硬约束（rev60 样文沉淀）**：正文与图面不出现"我归纳的""我判断的""这是我归纳的"等作者元说明；不出现"备考教学案例，非真实大厂题库"等多余免责声明；必要适用条件与准确来源必须保留，但不用作者姿态撑专业。**结尾固定句（硬规则）**：发布正文最后一句严格写作「关于XXX相关问题，欢迎一起交流～」，XXX 替换为当篇面试题对应的简洁主题关键词（如「关于 Agent 安全相关问题，欢迎一起交流～」「关于 Agent 记忆相关问题，欢迎一起交流～」），定稿后不得遗留 XXX 占位符；不写压轴金句、不叠加多个 CTA、不硬塞咨询入口。
+- 标签固定 8—10 个：求职场景占 60%（#校招 #秋招 #面试经验 #大厂实习 #求职辅导 #程序员），技术标签占 40%（#agent #LangChain #AI面试 等按选题选）。标签单列在固定结尾句之前（交付回复或文档末尾），不进正文段落；固定结尾句之后不得再加任何正文、标签或其他内容。
 
 ## 阶段 D：1—2 张手绘总结封面（竖版 3:4）
 
@@ -112,6 +112,7 @@ description: 为 AI Agent 方向校招/实习面试的计算机专业本科生�
 - 关键项：重要失败路径/改变结论的边界或前提用 `critical: true` 或 `critical_points` 显式登记；脚本只校验 source 登记字段合法（doc/section 非空且在章节清单内）与 maps_to 命中有效节点/分区，不得 NA 排除；source 对应正文是否属实、关键清单是否齐全，由人工语义证据确认，脚本不做重要性词匹配。
 - 视觉：捆绑手写配对（中文 `LXGW WenKai`，英文默认 `Patrick Hand` Regular 400，em 系数 1.03，固定为干净、直立、圆润的手写风；不合成粗体）；中文仅捆绑 WenKai，缺 glyph 先 preflight fail，不自动回落黑体、serif 或系统楷体；英文默认仅 `Patrick Hand`，`Caveat` 保留为历史/显式选用备选，不自动回切（备入链须已登记 QA），无 generic cursive。渲染前用 `scripts/check_v2_fonts.py`（V2-only，依赖 fontTools）核对 cmap 覆盖、回退链与零丢字；短注关键词至多一行；不设独立脚注；关键条件在图内或正文承接，图本身不失真。
 - 英文字样锚点：`assets/font-anchor-patrick-hand.png`，固定第一款“harness 循环”的英文形态；中文、米白底与绿色不变。新封面标题、图内英文和数字使用同一默认家族，用户明确指定其他字体时才覆盖；既有成品不因默认变更自动重做。
+- 顶部标题：顶部第一排只排具体大标题（L1 主问题）；不在大标题上方加栏目名、系列名、期次或主题小标签等眉题（kicker/overline，如“面试总结”“Agent 记忆”“系列第 N 期”“知识卡片”），顶部空间优先留给大标题的字号与换行。主标题自带选题词不算眉题；图内节点正文的合法术语（如“记忆”“Memory”）不受此限。文本源（SVG/HTML）用 `scripts/check_v2_eyebrow.py` 预检可见眉题（V2-only，V1 不调用）；非文本成品转渲染人工核对并记入 style_check 证据。
 - 参考锚点：`assets/cover-anchor-v2.webp`。
 
 ## 阶段与版本约束
@@ -119,7 +120,7 @@ description: 为 AI Agent 方向校招/实习面试的计算机专业本科生�
 使用 `scripts/stage_gate.py` 记录与检查阶段。它是本地流程防呆，不是鉴权系统，也不能核实真人授权或云端内容。
 
 - 状态机：`new → outline_shown → textbook_done → post_done → done`。无逐篇人工确认闸门；质量门由 tb-review.json 结构化证据、字数/图结构脚本、doc-snapshot.json 回读证据、cover-review.json 封面证据承担。
-- 脚本可阻断：思路未登记直接写教材、教材无结构化证据或 URL、证据错 sha/范围 fail、未登记 post 直接 finish（阻断 A→D 直跳）、snapshot 版号空/模块反序/body_file 内容与本地不符、finish 缺教材或文件变动/URL 不一致/正文越界/封面结构或 source_revision 不符、封面单元数量不在 1—2、canvas 缺失或非竖版 3:4、双页 core_point 缺 page 或 page 越界、cover-review 未绑定当前 manifest 与各单元源/预览文件 hash、cover_version 未知值或 manifest/workflow/review 三处版本不一致、V2 cover_files 条目缺/错 `version`、V2 关键项缺映射或被 NA 排除、V2 捆绑字体缺失/许可缺失/哈希不符或 `font_pair` 登记未知家族、V2 cmap 缺字或回退链含系统/generic 面孔被 `check_v2_fonts.py` 拒绝、cover-edit 未显式选版或跨版本套用 stale 证据，一律拒绝。
+- 脚本可阻断：思路未登记直接写教材、教材无结构化证据或 URL、证据错 sha/范围 fail、未登记 post 直接 finish（阻断 A→D 直跳）、snapshot 版号空/模块反序/body_file 内容与本地不符、finish 缺教材或文件变动/URL 不一致/正文越界/封面结构或 source_revision 不符、封面单元数量不在 1—2、canvas 缺失或非竖版 3:4、双页 core_point 缺 page 或 page 越界、cover-review 未绑定当前 manifest 与各单元源/预览文件 hash、cover_version 未知值或 manifest/workflow/review 三处版本不一致、V2 cover_files 条目缺/错 `version`、V2 关键项缺映射或被 NA 排除、V2 捆绑字体缺失/许可缺失/哈希不符或 `font_pair` 登记未知家族、V2 cmap 缺字或回退链含系统/generic 面孔被 `check_v2_fonts.py` 拒绝、V2 文本源大标题上方检出栏目/系列/期次/主题眉题被 `check_v2_eyebrow.py` 拒绝、cover-edit 未显式选版或跨版本套用 stale 证据，一律拒绝。
 - 恢复会话先读状态和最新文件，不依赖“好像登记过”。
 - 旧版（schema 1）workflow 先 `migrate`：历史 approvals 原话、history、实际文件全部保留；旧“已批准”不视为质量通过。
 
