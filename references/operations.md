@@ -21,9 +21,10 @@
    先预计算教材 sha256（证据 JSON 要绑定它，避免“先 record 才能拿 sha”的循环）：
    `shasum -a 256 "$TOPIC_DIR/textbook.txt"`
    `python "$SKILL/scripts/check_content.py" count "$TOPIC_DIR/textbook.txt" --stage textbook`
+   `python "$SKILL/scripts/check_content.py" layout "$TOPIC_DIR/textbook.txt" --stage textbook`（顺序要点逐项换行；仅结构机检，不替代语义复核）
    教材默认区间 5000—10000 字；确需超过 10000 时把 `--over-reason "一句非空理由"` 一并传给 record：
    `python "$SKILL/scripts/stage_gate.py" --state "$TOPIC_DIR/workflow.json" record --stage textbook --file "$TOPIC_DIR/textbook.txt" --url "云文档URL" --review "$TOPIC_DIR/tb-review.json" [--over-reason "不可删的具体数据/机制/反例"]`
-   record 内部实调字数校验，并要求证据绑定当前教材 sha。sources/counts 必须 pass（不能 not_applicable）；code/diagram/render 可带理由 not_applicable；每个 pass 范围须有非空 evidence 说明。
+   record 内部实调字数校验与排版结构检查，并要求证据绑定当前教材 sha。sources/counts 必须 pass（不能 not_applicable）；code/diagram/render 可带理由 not_applicable；每个 pass 范围须有非空 evidence 说明。
    ```json
    {"textbook_sha256": "shasum 输出的 textbook sha256",
     "ranges": {
@@ -41,6 +42,8 @@
     "modules": [{"role": "post", "body_file": "post-readback.txt"},
                 {"role": "textbook", "body_file": "tb-readback.txt"}]}
    ```
+   `python "$SKILL/scripts/check_content.py" count "$TOPIC_DIR/post.txt" --stage post`
+   `python "$SKILL/scripts/check_content.py" layout "$TOPIC_DIR/post.txt" --stage post`（h1「一、」分节、段内键帽逐项成行；仅结构机检，不替代语义复核）
    `python "$SKILL/scripts/stage_gate.py" --state "$TOPIC_DIR/workflow.json" record --stage post --file "$TOPIC_DIR/post.txt" --url "云文档URL" --snapshot "$TOPIC_DIR/doc-snapshot.json"`
    post 登记成功才进入 post_done（C 完成），否则 D 被阻断。
 

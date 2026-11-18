@@ -314,10 +314,13 @@ def main():
                     raise ValueError("textbook record requires --url (the cloud doc)")
                 if state.get("doc") and args.url.strip() != state["doc"] and not args.new_doc:
                     raise ValueError("doc URL must stay the same; pass --new-doc for an explicit new doc request")
-                from check_content import measure
+                from check_content import measure, check_layout
                 measured = measure(args.file.read_text(encoding="utf-8"), "textbook", args.over_reason)
                 if not measured["ok"]:
                     raise ValueError(f"textbook length not acceptable: {measured}")
+                layout = check_layout(args.file.read_text(encoding="utf-8"), "textbook")
+                if not layout["ok"]:
+                    raise ValueError(f"textbook layout not acceptable: {layout['errors']}")
                 check_tb_evidence(args.review, item["sha256"])
                 for stage_name in ("textbook", "post", "post_snapshot", "release"):
                     old = state["artifacts"].pop(stage_name, None)
@@ -348,13 +351,16 @@ def main():
                     raise ValueError("post must go into the same doc as the textbook")
                 if not args.snapshot:
                     raise ValueError("post record requires --snapshot (cloud read-back evidence)")
-                from check_content import measure
+                from check_content import measure, check_layout
                 measured = measure(args.file.read_text(encoding="utf-8"), "post")
                 if not measured["ok"]:
                     raise ValueError(
                         f"post length must be exactly 1500 (got {measured['characters']}); "
                         "1499 and 1501 both fail"
                     )
+                layout = check_layout(args.file.read_text(encoding="utf-8"), "post")
+                if not layout["ok"]:
+                    raise ValueError(f"post layout not acceptable: {layout['errors']}")
                 check_snapshot(args.snapshot, tb["url"], item["sha256"], tb["sha256"])
                 state["artifacts"]["post"] = item
                 state["artifacts"]["post_snapshot"] = record(args.snapshot)
@@ -373,6 +379,14 @@ def main():
                 raise ValueError("textbook file lost or changed; re-run textbook review")
             if digest(post["path"]) != post["sha256"]:
                 raise ValueError("post file lost or changed; re-run post registration")
+            # Files are hash-bound to the versions that passed the record-time
+            # layout gate; re-run the structural layout check explicitly here so
+            # finish cannot release a drifted or layout-invalid body.
+            from check_content import check_layout
+            for artifact, stage in ((tb, "textbook"), (post, "post")):
+                layout = check_layout(Path(artifact["path"]).read_text(encoding="utf-8"), stage)
+                if not layout["ok"]:
+                    raise ValueError(f"{stage} layout not acceptable: {layout['errors']}")
             check_tb_evidence(tb["review"]["path"], tb["sha256"])
             if args.doc_url.strip() != tb["url"]:
                 raise ValueError("doc-url must equal the textbook cloud doc URL")

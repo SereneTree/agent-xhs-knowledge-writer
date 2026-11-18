@@ -51,6 +51,245 @@ def measure(text, stage, over_reason=""):
     return result
 
 
+# --- Layout / enumeration structural checks ----------------------------------
+# Structural gates only: they look for explicit enumeration markers and
+# line/heading shape. They never judge whether the reasoning is correct;
+# semantic review stays a human duty.
+
+# Textbook ordered markers: 第一、 / 第二点 / 第三， …
+# Only explicit ordered enumeration is matched. Ordinary connectives and
+# non-enumeration senses — 首先/其次/第一步/第一次/第一性原理 — are not
+# enumerated points and must not be flagged.
+TB_ORDERED_RE = re.compile(r"第[一二三四五六七八九十百]+(?:点|、|，)")
+TB_HEADING_RE = re.compile(r"^\s*#")
+TB_TABLE_RE = re.compile(r"^\s*\|")
+TB_QUOTE_RE = re.compile(r"^\s*>")
+TB_LIST_PREFIX_RE = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)")
+
+# Post h1 topic heading: 一、 / 二、 … (markdown and HTML inner text).
+POST_H1_NUM_RE = re.compile(r"^\s*([一二三四五六七八九十]+)、")
+# Post emoji number keys: 1️⃣ … 5️⃣. Accept both FE0F+keycap and the
+# VS16-less combining-keycap form 1⃣.
+POST_EMOJI_KEY_RE = re.compile(r"([1-9])(?:\ufe0f)?\u20e3")
+POST_MAX_KEY = 5  # existing policy: 1️⃣—5️⃣ enumeration keys
+# Old-style in-section enumeration, anchored at the normalized line start.
+# Decimal versions (1.0 / 0.8), references like API(3) and plain prose
+# must not match. Covers 1. / 1) / 1． / 1、 / (3) / （3） / 第二点 / 二、.
+POST_ALT_ENUM_RE = re.compile(
+    r"^\s*(?:"
+    r"\d+\s*[.)．、）](?!\d)"
+    r"|[（(]\s*\d+\s*[）)]"
+    r"|第[一二三四五六七八九十]+\s*(?:点|、|，)"
+    r"|[一二三四五六七八九十]+\s*、"
+    r")")
+_HTML_LOW_HEADING_RE = re.compile(r"<h[2-6]\b", re.I)
+_HTML_H1_RE = re.compile(r"<h1\b[^>]*>(.*?)</h1>", re.I | re.S)
+_WRAP_TAG_RE = re.compile(
+    r"</?(?:ul|ol|li|p|b|strong|em|i|u|span|a|code)\b[^>]*>", re.I)
+_LIST_PREFIX_RE = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)")
+_BULLET_PREFIX_RE = re.compile(r"^\s*[-*+]\s+")
+
+
+def _normalize_body(line):
+    """Strip bullet prefix and inline markup wrappers before position checks.
+
+    Ordered-list prefixes (1. / 1) …) are kept: they are themselves the
+    old-style enumeration markers the post gate must reject. Valid wrapping
+    — `- 1️⃣ …`, `**1️⃣ …**`, `<a>1️⃣ …</a>` — must not read as the
+    keycap sitting mid-sentence.
+    """
+    body = _BULLET_PREFIX_RE.sub("", line)
+    body = _WRAP_TAG_RE.sub("", body)
+    body = body.replace("**", "").replace("__", "").replace("`", "")
+    return body.strip()
+
+_CN_DIGIT = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+             "六": 6, "七": 7, "八": 8, "九": 9}
+
+
+def _cn_to_int(value):
+    """Convert 一…十 / 十一…十九 / 二十… to int; None if unrecognized."""
+    if value == "十":
+        return 10
+    if "十" in value:
+        tens, _, ones = value.partition("十")
+        tens_n = _CN_DIGIT.get(tens, 1) if tens else 1
+        ones_n = _CN_DIGIT.get(ones, 0) if ones else 0
+        return tens_n * 10 + ones_n
+    return _CN_DIGIT.get(value)
+
+
+def _strip_code_blocks(text):
+    text = re.sub(r"```[^\n]*\n.*?```|~~~[^\n]*\n.*?~~~", "", text, flags=re.S)
+    text = re.sub(r"<pre\b[^>]*>.*?</pre>", "", text, flags=re.S | re.I)
+    return text
+
+
+def check_textbook_layout(text):
+    """Ordered enumeration points must each start their own line.
+
+    - A line carrying two or more explicit markers (第一、…第二点…第三，…)
+      is squeezed into one paragraph/line and is rejected.
+    - A single marker sitting mid-sentence ("有一项：第一、校验") is also
+      rejected; compliant markers open the line (optionally after a list
+      prefix). Headings, table rows, blockquotes and code blocks are exempt
+      so quoted/listed material is not false-flagged.
+    The gate matches only the explicit ordered markers above.
+    """
+    errors = []
+    text = _strip_code_blocks(text)
+    text = re.sub(r"`[^`]*`", "", text)  # inline code spans carry no prose points
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if TB_HEADING_RE.match(stripped) or TB_TABLE_RE.match(stripped) \
+                or TB_QUOTE_RE.match(stripped):
+            continue
+        markers = TB_ORDERED_RE.findall(stripped)
+        if len(markers) >= 2:
+            errors.append(
+                f"textbook line {lineno}: 同一行出现 {len(markers)} 个顺序要点标记"
+                f"（{'，'.join(markers)}）；第一、第二、第三（含第一点/第一，等变体）"
+                "必须逐项换行，不得挤在同一段或同一行")
+            continue
+        if not markers:
+            continue
+        body = _LIST_PREFIX_RE.sub("", stripped)
+        match = TB_ORDERED_RE.search(body)
+        if match and body[:match.start()].strip():
+            errors.append(
+                f"textbook line {lineno}: 顺序要点标记 {match.group(0)} 位于句子中间；"
+                "明确枚举的第一、第二、第三须在行首独立换行"
+                "（标题、表格、引用、代码块除外）")
+    return errors
+
+
+def check_post_layout(text):
+    """Post section headings and in-section emoji enumeration shape checks.
+
+    - Each topic block/paragraph group is one h1 numbered 一、二、三、,
+      consecutively from 一; the first non-empty body line must be that h1.
+      Every natural paragraph is not turned into its own h1, and no
+      h2—h6 heading may replace that rule inside a section.
+    - In-section enumeration uses 1️⃣…5️⃣ keys, each on its own line;
+      numbering restarts from 1️⃣ at each section. Old-style numbering
+      (1. / 1) / 1． / （3） / 第二点 / 二、) must be converted to keys — a
+      section using only old numbering fails, and mixing keys with old
+      numbering fails too. Heading lines must not carry emoji keys.
+    Short-label + explanation row, ✅/❌ contrast policy and length limits
+    are unchanged.
+    """
+    errors = []
+    text = _strip_code_blocks(text)
+    h1_numbers = []
+    keys_in_section = []
+    alt_in_section = False
+    any_body_line = False
+
+    def close_section():
+        nonlocal keys_in_section, alt_in_section
+        if alt_in_section:
+            errors.append(
+                "post: 段内枚举须统一使用 1️⃣…5️⃣ 键帽逐项成行；检测到旧式编号"
+                "（1. / 1) / 1． / （3） / 第二点 / 二、 等），请转换成键帽，"
+                "不要保留文字序号，也不得与键帽混用")
+        keys_in_section = []
+        alt_in_section = False
+
+    def register_h1(lineno, raw_label, label):
+        if POST_EMOJI_KEY_RE.search(raw_label):
+            errors.append(
+                f"post line {lineno}: h1 标题禁止使用键帽编号；小节标题用「一、二、三、」")
+        close_section()
+        expected = len(h1_numbers) + 1
+        h1_numbers.append(None)
+        number = POST_H1_NUM_RE.match(label)
+        if not number:
+            errors.append(
+                f"post line {lineno}: h1 小节标题须以「一、二、三、…」中文序号编号")
+        else:
+            value = _cn_to_int(number.group(1))
+            if value is None or value != expected:
+                errors.append(
+                    f"post line {lineno}: h1 序号须从「一」起连续编号"
+                    f"（期望第 {expected} 节，实际 {number.group(1)}）")
+            h1_numbers[-1] = value
+
+    for lineno, raw in enumerate(text.splitlines(), start=1):
+        stripped = raw.strip()
+        if not stripped:
+            continue
+        is_heading = False
+        if _HTML_LOW_HEADING_RE.search(stripped):
+            errors.append(
+                f"post line {lineno}: 小节内禁止 h2—h6 低级标题；主题小节统一用 "
+                "h1「一、二、三、」编号")
+            continue
+        md_heading = re.match(r"^(#{1,6})\s+(.*)$", stripped)
+        if md_heading:
+            level = len(md_heading.group(1))
+            if level >= 2:
+                errors.append(
+                    f"post line {lineno}: 小节内禁止 h2—h6 低级标题；主题小节统一用 "
+                    "h1「一、二、三、」编号")
+                continue
+            is_heading = True
+            register_h1(lineno, stripped, md_heading.group(2).strip())
+        else:
+            m_h1 = _HTML_H1_RE.search(stripped)
+            if m_h1:
+                is_heading = True
+                register_h1(lineno, stripped, m_h1.group(1).strip())
+        if not any_body_line:
+            any_body_line = True
+            if not is_heading:
+                errors.append(
+                    f"post line {lineno}: 第一行须直接进入第一个 h1 小节，不写铺垫段")
+        if is_heading:
+            continue
+        visible = _normalize_body(stripped)
+        keys = [(mm.start(), int(mm.group(1)))
+                for mm in POST_EMOJI_KEY_RE.finditer(visible)]
+        if POST_ALT_ENUM_RE.match(visible):
+            alt_in_section = True
+        if len(keys) >= 2:
+            errors.append(
+                f"post line {lineno}: 一行出现多个枚举键帽；段内 1️⃣2️⃣3️⃣ 必须逐项独立成行")
+            continue
+        if keys:
+            key = keys[0][1]
+            vm = POST_EMOJI_KEY_RE.search(visible)
+            if vm and visible[:vm.start()].strip():
+                errors.append(
+                    f"post line {lineno}: 枚举键帽 {key}️⃣ 须独立成行，不夹在句子中间")
+            if key > POST_MAX_KEY:
+                errors.append(
+                    f"post line {lineno}: 键帽编号上限为 1️⃣—{POST_MAX_KEY}️⃣，"
+                    f"出现 {key}️⃣；请压缩/重组或拆成小节，不保留文字序号条目")
+            expected = len(keys_in_section) + 1
+            if key != expected:
+                errors.append(
+                    f"post line {lineno}: 小节内枚举键帽须从 1️⃣ 顺序递增"
+                    f"（期望 {expected}️⃣，实际 {key}️⃣）；新小节从 1️⃣ 重新开始")
+            keys_in_section.append(key)
+    close_section()
+    if not h1_numbers:
+        errors.append(
+            "post: 发布正文须按主题小节/段落组用 h1「一、二、三、…」分节；"
+            "不是每个自然段都套 h1")
+    return errors
+
+
+def check_layout(text, stage):
+    if stage == "textbook":
+        errors = check_textbook_layout(text)
+    else:
+        errors = check_post_layout(text)
+    return {"ok": not errors, "stage": stage, "errors": errors,
+            "note": "Structural line/heading check only; semantic review still required."}
+
+
 def check_diagram(data):
     errors = []
     if not isinstance(data, dict):
@@ -566,6 +805,10 @@ def main():
     count.add_argument("--over-reason", default="",
                        help="仅 textbook 正文超过默认 10000 字时必填的非空理由；"
                             "对 post（严格 1500，1499/1501 均拒绝）与低于下限不生效，也不绕过 diagram/cover 检查。")
+    layout = commands.add_parser("layout")
+    layout.add_argument("file", type=Path)
+    layout.add_argument("--stage", choices=("textbook", "post"), required=True,
+                        help="textbook：顺序要点逐项换行；post：h1「一、」分节与段内键帽逐项成行")
     diagram = commands.add_parser("diagram")
     diagram.add_argument("file", type=Path)
     cover = commands.add_parser("cover")
@@ -575,6 +818,8 @@ def main():
         raw = args.file.read_text(encoding="utf-8")
         if args.command == "count":
             result = measure(raw, args.stage, args.over_reason)
+        elif args.command == "layout":
+            result = check_layout(raw, args.stage)
         elif args.command == "diagram":
             result = check_diagram(json.loads(raw))
         else:
