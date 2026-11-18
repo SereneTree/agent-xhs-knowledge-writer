@@ -91,7 +91,7 @@ python "$SKILL/scripts/stage_gate.py" --state "$TOPIC_DIR/workflow.json" migrate
 
 ## 质量门摘要
 
-- 教材：来源原文与版本留痕；代码 / schema / 参数可复现；`sources`、`counts` 必须 pass，其余范围可带理由 not_applicable；顺序要点（第一、/第一点/第一，等）逐项换行，结构机检只认明确枚举标记，不误报首先/其次/第一步/第一次。
+- 教材：来源原文与版本留痕；代码 / schema / 参数可复现；`sources`、`counts` 必须 pass，其余范围可带理由 not_applicable；顺序要点（第一、/第一点/第一，等）逐项换行，结构机检只认明确枚举标记，不误报首先/其次/第一步/第一次。交付教材不设独立参考来源章节，行内出处简注保留，完整出处与 claim ledger 留本地复核记录。
 - 正文：1500 字硬边界；每个主题小节用 h1「一、二、三、」编号、小节内禁用低级标题，段内 1️⃣2️⃣3️⃣ 逐项成行且小节内从 1️⃣ 重新编号（结构机检，不替代语义复核）；结尾固定句「关于<主题词>相关问题，欢迎一起交流～」，标签在其前，句后无正文或标签；云文档模块顺序必须为 `post → textbook`，snapshot 实读 body 文件 hash。
 - 封面：单元数量、canvas 比例、page 标注、版本一致、必备类别（V1：problem / judgment / module / mechanism；V2：problem / judgment + module/mechanism 至少一类；failure / tradeoff / boundary 缺项须 `coverage_na` 理由）、V2 关键项（`critical`/`critical_points`）映射有效且不被 NA 排除、V2 顶部无栏目/系列/期次/主题眉题（文本源预检 + 非文本成品人工核对）、`source_revision` 与教材 sha256 绑定；六项封面证据均须 `{status: pass, evidence: 逐项说明}`。关键清单齐全性由人工语义证据承担。
 

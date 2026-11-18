@@ -24,7 +24,7 @@
    `python "$SKILL/scripts/check_content.py" layout "$TOPIC_DIR/textbook.txt" --stage textbook`（顺序要点逐项换行；仅结构机检，不替代语义复核）
    教材默认区间 5000—10000 字；确需超过 10000 时把 `--over-reason "一句非空理由"` 一并传给 record：
    `python "$SKILL/scripts/stage_gate.py" --state "$TOPIC_DIR/workflow.json" record --stage textbook --file "$TOPIC_DIR/textbook.txt" --url "云文档URL" --review "$TOPIC_DIR/tb-review.json" [--over-reason "不可删的具体数据/机制/反例"]`
-   record 内部实调字数校验与排版结构检查，并要求证据绑定当前教材 sha。sources/counts 必须 pass（不能 not_applicable）；code/diagram/render 可带理由 not_applicable；每个 pass 范围须有非空 evidence 说明。
+   record 内部实调字数校验与排版结构检查，并要求证据绑定当前教材 sha。sources/counts 必须 pass（不能 not_applicable）；code/diagram/render 可带理由 not_applicable；每个 pass 范围须有非空 evidence 说明。sources 证据与 claim ledger 是内部复核记录，留本地 `review.md` / `tb-review.json`，不进交付教材或发布稿的独立来源章节。
    ```json
    {"textbook_sha256": "shasum 输出的 textbook sha256",
     "ranges": {

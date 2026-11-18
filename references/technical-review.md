@@ -6,7 +6,7 @@
 
 网站内容默认 Browser Use 获取；官方可下载文件与用户明确要求的 API 路径按宿主授权使用。闭源行为无法验证时写清条件与未知。不调用不存在的工具，引用格式遵循交付技能规范。
 
-建立 claim ledger：每条重要主张记录 `claim / source_url / source_section / version / evidence_type / limitation / verification`。正文在对应结论处引用，不能只在文末堆链接。小红书稿保留可读的来源说明，详细出处保存在教材。
+建立 claim ledger：每条重要主张记录 `claim / source_url / source_section / version / evidence_type / limitation / verification`。正文在对应结论处保留行内出处简注，不能只在文末堆链接；完整 claim ledger 与详细出处保存在本地复核记录（`review.md` / `tb-review.json`），不写进交付教材或发布稿的独立来源章节。这是交付呈现收口，来源核验与版本留痕的研究强度不降低。
 
 ## 反例审查
 

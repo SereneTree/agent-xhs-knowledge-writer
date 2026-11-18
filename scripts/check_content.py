@@ -6,6 +6,7 @@ import html
 import json
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 RANGES = {"textbook": (5000, 10000), "post": (1500, 1500)}
@@ -84,6 +85,17 @@ POST_ALT_ENUM_RE = re.compile(
     r")")
 _HTML_LOW_HEADING_RE = re.compile(r"<h[2-6]\b", re.I)
 _HTML_H1_RE = re.compile(r"<h1\b[^>]*>(.*?)</h1>", re.I | re.S)
+# Fixed post closing sentence: 关于<主题词>相关问题，欢迎一起交流～.
+# Fullwidth comma (，) and fullwidth tilde (～) are required; an ASCII ~
+# drifts and is rejected. The keyword is a concise topic word; no length or
+# charset rule is enforced here.
+POST_CLOSING_RE = re.compile(r"^关于\s*(?P<keyword>.+?)\s*相关问题，欢迎一起交流～$")
+# Placeholder X/Xｅ detected after NFKC folding, so fullwidth ＸＸＸ also matches.
+POST_CLOSING_PLACEHOLDER_RE = re.compile(r"xxx", re.I)
+
+
+def _nfkc(text):
+    return unicodedata.normalize("NFKC", text)
 _WRAP_TAG_RE = re.compile(
     r"</?(?:ul|ol|li|p|b|strong|em|i|u|span|a|code)\b[^>]*>", re.I)
 _LIST_PREFIX_RE = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)")
@@ -165,6 +177,49 @@ def check_textbook_layout(text):
     return errors
 
 
+def check_post_closing(entries):
+    """Fixed closing sentence gate for the post body (body-only input).
+
+    The last non-empty line must be 关于<主题词>相关问题，欢迎一起交流～:
+    - XXX / xxx placeholder must be replaced by the actual topic keyword;
+    - punctuation and wording must match (fullwidth ，and ～; ASCII ~ fails);
+    - no body line, tag line or other content may follow the fixed sentence.
+    Tags are separated from the body by the caller; any trailing non-empty
+    line is rejected regardless of shape.
+    """
+    errors = []
+    if not entries:
+        return errors
+    closing_idx = None
+    for i, (_lineno, visible, _is_heading) in enumerate(entries):
+        if POST_CLOSING_RE.match(visible):
+            closing_idx = i
+            break
+    last_lineno, last_visible, _ = entries[-1]
+    if closing_idx is None:
+        if "~" in last_visible:
+            errors.append(
+                f"post line {last_lineno}: 结尾句须使用全角「～」，不得用 ASCII「~」")
+        if POST_CLOSING_PLACEHOLDER_RE.search(_nfkc(last_visible)):
+            errors.append(
+                f"post line {last_lineno}: 结尾句 XXX 占位符未替换为当篇主题关键词")
+        errors.append(
+            f"post line {last_lineno}: 发布正文最后一句须为固定句式"
+            "「关于<主题词>相关问题，欢迎一起交流～」；主题词替换为简洁对应题目的关键词")
+        return errors
+    closing_lineno, closing_visible, _ = entries[closing_idx]
+    keyword = POST_CLOSING_RE.match(closing_visible).group("keyword").strip()
+    if not keyword or POST_CLOSING_PLACEHOLDER_RE.search(_nfkc(closing_visible)):
+        errors.append(
+            f"post line {closing_lineno}: 结尾句 XXX 占位符未替换为当篇主题关键词"
+            "，或主题词为空白；须替换为当篇简洁对应题目的关键词")
+    for lineno, visible, _ in entries[closing_idx + 1:]:
+        errors.append(
+            f"post line {lineno}: 固定结尾句「关于<主题词>相关问题，"
+            "欢迎一起交流～」之后不得再有正文、标签或其他内容")
+    return errors
+
+
 def check_post_layout(text):
     """Post section headings and in-section emoji enumeration shape checks.
 
@@ -177,6 +232,8 @@ def check_post_layout(text):
       (1. / 1) / 1． / （3） / 第二点 / 二、) must be converted to keys — a
       section using only old numbering fails, and mixing keys with old
       numbering fails too. Heading lines must not carry emoji keys.
+    - The body ends with the fixed closing sentence
+      「关于<主题词>相关问题，欢迎一起交流～」; see check_post_closing.
     Short-label + explanation row, ✅/❌ contrast policy and length limits
     are unchanged.
     """
@@ -186,6 +243,7 @@ def check_post_layout(text):
     keys_in_section = []
     alt_in_section = False
     any_body_line = False
+    entries = []
 
     def close_section():
         nonlocal keys_in_section, alt_in_section
@@ -246,9 +304,10 @@ def check_post_layout(text):
             if not is_heading:
                 errors.append(
                     f"post line {lineno}: 第一行须直接进入第一个 h1 小节，不写铺垫段")
+        visible = _normalize_body(stripped)
+        entries.append((lineno, visible, is_heading))
         if is_heading:
             continue
-        visible = _normalize_body(stripped)
         keys = [(mm.start(), int(mm.group(1)))
                 for mm in POST_EMOJI_KEY_RE.finditer(visible)]
         if POST_ALT_ENUM_RE.match(visible):
@@ -278,6 +337,7 @@ def check_post_layout(text):
         errors.append(
             "post: 发布正文须按主题小节/段落组用 h1「一、二、三、…」分节；"
             "不是每个自然段都套 h1")
+    errors.extend(check_post_closing(entries))
     return errors
 
 
