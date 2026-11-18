@@ -40,6 +40,18 @@
 - **跨版本重做**：已完成旧 V1 release 不得被 cover-edit 改成 V2；换轨须在独立选题目录重新 `init`（默认 v2）另起新 revision，旧 release 归档只读、不回写；测试须断言旧 release 版本与 hash 未被改写。
 - 把重要失败路径或改变结论的条件写成下沉排除：脚本不做语义拦截（能力边界如实记录），由 semantic_review/coverage_check 人工证据判失败，不用词匹配冒充语义安全。
 
+### V2 字体捆绑与渲染
+
+- 捆绑资源：`assets/fonts/` 下三支 ttf（LXGW WenKai / Caveat / Patrick Hand）、对应 OFL 许可件与 `fonts-manifest.json`；脚本核对字体文件存在、许可件存在、sha256 与清单一致。文件丢失、许可件缺失或哈希不符：V2 `cover` 检查必须拒绝。
+- V2 manifest `font_pair`：`zh` 只能是 `LXGW WenKai`，`en` 只能是 `Caveat` 或 `Patrick Hand`；登记旧 `Purisa`/`Chilanka`、`Noto` 黑体或拼写错误的未知家族：必须拒绝。
+- manifest `fonts` 条目引用未捆绑文件，或声明 sha256 与捆绑清单不符：必须拒绝。
+- 同形状字体字段在 V1 夹具下不触发新门：V1 旧 Purisa/Noto 口径冻结，照常通过旧四必备校验；V1 不调用 `check_v2_fonts.py`。
+- cmap 预检（`scripts/check_v2_fonts.py`，V2-only）：选题用字不在捆绑 cmap（未分配码位 U+10FFFF、三栈都缺的符号 U+2017）→ 列出 missing_glyph 并非零退出，preflight fail，不自动回落；helper 依赖 fontTools，缺失时明确 environment_error 非零退出，不静默 pass。
+- 回退链合法性：中文链出现 `PingFang SC`/`Kaiti SC`/`STKaiti`/serif/sans/system-ui 等系统或 generic 面孔，或英文链出现 `cursive`/系统手写/未登记家族：必须拒绝；`Patrick Hand` 未标记 QA 通过即入英文链：必须拒绝。
+- 零丢字：run 拆分后，ASCII 行尾词、空白行尾、中英转换处拼接结果与原文逐字一致；尾 run 必须 flush。
+- 渲染人工门：整段中文回落到黑体/无衬线、英文粗黑过大、中文误入英文手写体出现方框或缺字、个别缺字兜底范围未在 style_check 证据记录：不可通过 style_check。机器只核登记、捆绑哈希、cmap 覆盖与链规则，不判字体气质、笔画均衡与像素可读性。
+- 390px 宽度真实预览短注仍可读；长标题换行/提炼，不靠压小字号硬塞。
+
 - finish 时 --doc-url 与教材登记 URL 不一致、source_revision 不等于 textbook.txt sha256、或教材文件丢失/变动：脚本必须拒绝（错误文档URL/教材sha/教材丢失）。
 - 旧版（schema 1，含 idea_wait/textbook_wait/approve）workflow：必须显式 `migrate`；历史 approvals 原话、history、实际文件保留，旧“已批准”不视为质量通过；迁移后按新流程复核当前版本。
 - 发布模块顺序错（正文未前置、教材被覆盖）：属云端回读必须发现的问题，回读证据写进 doc-snapshot.json（门证据：模块顺序、body_file 实读 hash）；叙述性说明写进 review.md。本地脚本只核验附件一致性，不声称已验证真实飞书内容。

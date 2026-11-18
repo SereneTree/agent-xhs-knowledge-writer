@@ -3,8 +3,47 @@
 
 不依赖任何第三方库，只用标准库 random + math。
 """
+import html
 import math
 import random
+
+# V2 bundled handwritten pair (see assets/fonts/fonts-manifest.json).
+# Regular weight only; no synthesized bold. Chinese stack is the bundled
+# LXGW WenKai primary only; no silent kai/serif/sans fallback. English stack
+# bundled Caveat primary -> Patrick Hand secondary; no generic cursive.
+V2_FONT_ZH = "LXGW WenKai"
+V2_FONT_EN_PRIMARY = "Caveat"
+V2_FONT_EN_SECONDARY = "Patrick Hand"
+# English relative em coefficients, fixed from the final QA sample.
+V2_EN_COEF_PRIMARY = 1.03
+V2_EN_COEF_SECONDARY = 0.96
+
+
+def _is_zh(ch):
+    o = ord(ch)
+    return (0x3000 <= o <= 0x303F or 0x3400 <= o <= 0x9FFF
+            or 0xFF00 <= o <= 0xFFEF or 0x2E80 <= o <= 0x2EFF
+            or 0x2460 <= o <= 0x2473)
+
+
+def _segment(ch):
+    """ASCII 0x20-0x7E -> Latin; CJK/full-width/circled digits -> Chinese;
+    any other glyph is covered by the bundled Chinese stack, not a system face."""
+    o = ord(ch)
+    if 0x20 <= o <= 0x7E:
+        return "en"
+    return "zh"
+
+
+def v2_font_stack(kind):
+    """Ordered bundled font stack for a V2 SVG/HTML text run.
+
+    kind: "zh" for CJK, "en" for Latin/digits/punctuation. Only bundled
+    families are listed; system/generic faces are never automatic fallbacks.
+    """
+    if kind == "zh":
+        return f"'{V2_FONT_ZH}'"
+    return f"'{V2_FONT_EN_PRIMARY}', '{V2_FONT_EN_SECONDARY}'"
 
 
 class Sketch:
@@ -109,4 +148,34 @@ class Sketch:
                 out.append(self.arrow(a[0], a[1], b[0], b[1], stroke=stroke, width=width, rough=rough))
             else:
                 out.append(self.line(a[0], a[1], b[0], b[1], stroke=stroke, width=width, rough=rough))
+        return "\n".join(out)
+
+    def mixed_text(self, x, y, text, size, fill="#2E2A26", anchor="start",
+                   en_coef=V2_EN_COEF_PRIMARY):
+        """Emit SVG ``<text>`` splitting CJK vs Latin runs on the V2 pair.
+
+        ``en_coef`` is the English relative em scale fixed on the QA sample:
+        Caveat 1.03, Patrick Hand 0.96. Both stacks share the alphabetic
+        baseline with offset 0; no per-font baseline shift. The trailing run
+        is always flushed so no tail ASCII word or whitespace is dropped.
+        """
+        runs, cur, buf = [], None, ""
+        for ch in text:
+            k = _segment(ch)
+            if cur is None:
+                cur = k
+            if k != cur:
+                runs.append((cur, buf))
+                cur, buf = k, ""
+            buf += ch
+        if buf:
+            runs.append((cur, buf))
+        out = [f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="{anchor}" fill="{fill}">']
+        for kind, part in runs:
+            scale = size if kind == "zh" else round(size * en_coef, 1)
+            out.append(
+                f'<tspan font-family="{v2_font_stack(kind)}" font-size="{scale}">'
+                f"{html.escape(part)}</tspan>"
+            )
+        out.append("</text>")
         return "\n".join(out)

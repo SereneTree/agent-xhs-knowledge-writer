@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline length and diagram checks. Not a semantic or rendering verifier."""
 import argparse
+import hashlib
 import html
 import json
 import re
@@ -124,6 +125,15 @@ REQUIRED_CATEGORIES_V1 = {"problem", "judgment", "module", "mechanism"}
 REQUIRED_CATEGORIES_V2 = {"problem", "judgment"}
 REQUIRED_ANY_V2 = {"module", "mechanism"}
 
+# V2 bundled handwritten pair (asset manifest: assets/fonts/fonts-manifest.json).
+# Machine only verifies registration, bundled file presence and hash consistency;
+# rendered legibility and stroke balance are human review duties. V1 keeps its
+# frozen legacy font gate and is never touched by these checks.
+FONTS_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
+FONT_MANIFEST_PATH = FONTS_DIR / "fonts-manifest.json"
+V2_ALLOWED_ZH_FONTS = {"LXGW WenKai"}
+V2_ALLOWED_EN_FONTS = {"Caveat", "Patrick Hand"}
+
 
 COVER_MIN_UNITS, COVER_MAX_UNITS = 1, 2
 
@@ -178,6 +188,87 @@ def _parse_cover_units(data, errors):
         errors.append("cover manifest needs cover:{source,preview} or "
                       "covers:[{source,preview}, ...] with 1—2 units")
     return units
+
+
+def _load_font_manifest(errors):
+    """Return {file: manifest entry} and verify bundled files, licenses and hashes.
+
+    Integrity check only; it does not inspect rendered glyphs or legibility.
+    """
+    index = {}
+    try:
+        manifest = json.loads(FONT_MANIFEST_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        errors.append(f"[v2] bundled font manifest unreadable: {exc}")
+        return index
+    entries = manifest.get("fonts", []) if isinstance(manifest, dict) else []
+    if not isinstance(entries, list):
+        errors.append("[v2] bundled font manifest fonts must be a list")
+        return index
+    valid_roles = {"primary-zh", "primary-en", "secondary-en"}
+    for entry in entries:
+        if not isinstance(entry, dict) or not str(entry.get("file", "")).strip():
+            errors.append("[v2] bundled font manifest entry needs a file")
+            continue
+        file = entry["file"]
+        index[file] = entry
+        role = entry.get("role")
+        if role not in valid_roles:
+            errors.append(f"[v2] bundled font {file} role must be one of {sorted(valid_roles)}")
+        if not str(entry.get("family", "")).strip():
+            errors.append(f"[v2] bundled font {file} needs a family name")
+        if entry.get("weight") != 400:
+            errors.append(f"[v2] bundled font {file} must be weight 400")
+        if not str(entry.get("version", "")).strip():
+            errors.append(f"[v2] bundled font {file} needs a version")
+        if not str(entry.get("license", "")).strip():
+            errors.append(f"[v2] bundled font {file} needs a license field")
+        path = FONTS_DIR / file
+        if not path.is_file():
+            errors.append(f"[v2] bundled font missing: {file}")
+            continue
+        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        if actual != entry.get("sha256"):
+            errors.append(f"[v2] bundled font sha256 mismatch: {file}")
+        license_file = entry.get("license_file")
+        if license_file and not (FONTS_DIR / license_file).is_file():
+            errors.append(f"[v2] bundled font license missing: {license_file}")
+    return index
+
+
+def _check_v2_fonts(data, index, errors):
+    """Validate an optional manifest font_pair and bundled file references.
+
+    ``font_pair``: {"zh": "LXGW WenKai", "en": "Caveat" | "Patrick Hand"}.
+    ``fonts``: optional list of {"file", "sha256"} entries referencing the
+    bundled manifest. Rendered stroke balance and legibility stay human review.
+    """
+    pair = data.get("font_pair")
+    if pair is not None:
+        if not isinstance(pair, dict):
+            errors.append("[v2] font_pair must be {zh, en} (or omitted)")
+        else:
+            if pair.get("zh") not in V2_ALLOWED_ZH_FONTS:
+                errors.append(f"[v2] font_pair.zh must be one of {sorted(V2_ALLOWED_ZH_FONTS)}")
+            if pair.get("en") not in V2_ALLOWED_EN_FONTS:
+                errors.append(f"[v2] font_pair.en must be one of {sorted(V2_ALLOWED_EN_FONTS)}")
+    files = data.get("fonts")
+    if files is not None:
+        if not isinstance(files, list):
+            errors.append("[v2] fonts must be a list of bundled font entries (or omitted)")
+            return
+        for i, entry in enumerate(files):
+            where = f"fonts[{i}]"
+            if not isinstance(entry, dict):
+                errors.append(f"[v2] {where} must be an object")
+                continue
+            file = str(entry.get("file", "")).strip()
+            if file not in index:
+                errors.append(f"[v2] {where} references unbundled font file: {file!r}")
+                continue
+            declared = entry.get("sha256")
+            if declared and declared != index[file].get("sha256"):
+                errors.append(f"[v2] {where} sha256 does not match bundled manifest: {file}")
 
 
 def _check_v2_critical(data, valid_targets, units, excluded, listed_keys, errors):
@@ -294,6 +385,9 @@ def check_cover(data):
     else:
         errors.append(f"cover_version must be one of {COVER_VERSIONS}, got {raw_version!r}")
         cover_version = "v1"
+    if cover_version == "v2":
+        font_index = _load_font_manifest(errors)
+        _check_v2_fonts(data, font_index, errors)
     if not data.get("source_revision"):
         errors.append("missing source_revision")
     if not data.get("title"):
