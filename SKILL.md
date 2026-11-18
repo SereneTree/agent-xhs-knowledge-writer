@@ -110,7 +110,8 @@ description: 为 AI Agent 方向校招/实习面试的计算机专业本科生�
 - 信息取舍：主问题 + 一句核心判断 + 核心结构（流程主干或框架分区）+ 关键分支；必要收口主题无对应内容就不造节点/参数/失败路径。
 - 必备类别：`problem`/`judgment` 必需；`module` 或 `mechanism` 至少一类；详细参数、选型对比可带下沉 reason 不上封面。
 - 关键项：重要失败路径/改变结论的边界或前提用 `critical: true` 或 `critical_points` 显式登记；脚本只校验 source 登记字段合法（doc/section 非空且在章节清单内）与 maps_to 命中有效节点/分区，不得 NA 排除；source 对应正文是否属实、关键清单是否齐全，由人工语义证据确认，脚本不做重要性词匹配。
-- 视觉：捆绑手写配对（中文 `LXGW WenKai`，英文主 `Caveat`、备 `Patrick Hand`，均 Regular 不合成粗体；英文 em 系数 1.03 / 0.96）；中文仅捆绑 WenKai，缺 glyph 先 preflight fail，不自动回落黑体、serif 或系统楷体；英文仅 `Caveat` → `Patrick Hand`（备入链须已登记 QA），无 generic cursive。渲染前用 `scripts/check_v2_fonts.py`（V2-only，依赖 fontTools）核对 cmap 覆盖、回退链与零丢字；短注关键词至多一行；不设独立脚注；关键条件在图内或正文承接，图本身不失真。
+- 视觉：捆绑手写配对（中文 `LXGW WenKai`，英文默认 `Patrick Hand` Regular 400，em 系数 1.03，固定为干净、直立、圆润的手写风；不合成粗体）；中文仅捆绑 WenKai，缺 glyph 先 preflight fail，不自动回落黑体、serif 或系统楷体；英文默认仅 `Patrick Hand`，`Caveat` 保留为历史/显式选用备选，不自动回切（备入链须已登记 QA），无 generic cursive。渲染前用 `scripts/check_v2_fonts.py`（V2-only，依赖 fontTools）核对 cmap 覆盖、回退链与零丢字；短注关键词至多一行；不设独立脚注；关键条件在图内或正文承接，图本身不失真。
+- 英文字样锚点：`assets/font-anchor-patrick-hand.png`，固定第一款“harness 循环”的英文形态；中文、米白底与绿色不变。新封面标题、图内英文和数字使用同一默认家族，用户明确指定其他字体时才覆盖；既有成品不因默认变更自动重做。
 - 参考锚点：`assets/cover-anchor-v2.webp`。
 
 ## 阶段与版本约束

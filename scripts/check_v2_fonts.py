@@ -282,10 +282,20 @@ def _selftest(bundle_dir, TTFont):
         (tmp / manifest_name).write_text(json.dumps(man, ensure_ascii=False))
         decl = override_decl or {
             "zh_chain": [base_manifest["fonts"][0]["family"]],
-            "en_chain": [base_manifest["fonts"][1]["family"]],
+            "en_chain": [primary_en],
             "secondary_qa_approved": False,
         }
         return tmp, man, decl
+
+    en_by_role = {entry["role"]: entry["family"] for entry in base_manifest["fonts"]}
+    primary_en = en_by_role[ROLE_EN_PRIMARY]
+    secondary_en = en_by_role[ROLE_EN_SECONDARY]
+    case("default_patrick_hand", primary_en == "Patrick Hand" and secondary_en == "Caveat")
+    defaults = base_manifest.get("defaults", {})
+    case("default_primary_only", defaults.get("en_chain") == [primary_en]
+         and defaults.get("en_em_coefficient") == 1.03)
+    sample_path = src.parent.parent / defaults.get("sample_asset", "")
+    case("fixed_sample_exists", sample_path.is_file())
 
     # 1. Safe ASCII + common Chinese, primary-only chain -> pass.
     tmp, _, decl = make_fixture(
@@ -302,7 +312,7 @@ def _selftest(bundle_dir, TTFont):
          json.dumps(res, ensure_ascii=False))
 
     # 3. A symbol absent from all three bundled cmaps -> missing, must fail.
-    #    Basic Latin is fully covered by Caveat, so scan punctuation/symbol
+    #    Basic Latin is fully covered by the primary, so scan punctuation/symbol
     #    ranges for a codepoint missing on zh, primary-en and secondary-en.
     def _cmap(i):
         return TTFont(str(src / base_manifest["fonts"][i]["file"])).getBestCmap()
@@ -320,7 +330,7 @@ def _selftest(bundle_dir, TTFont):
 
     # 4. Forbidden PingFang token in zh chain -> reject.
     tmp, _, _ = make_fixture()
-    bad_decl = {"zh_chain": ["LXGW WenKai", "PingFang SC"], "en_chain": ["Caveat"]}
+    bad_decl = {"zh_chain": ["LXGW WenKai", "PingFang SC"], "en_chain": [primary_en]}
     res = run_check(str(tmp), manifest_name, "测试", bad_decl, False, TTFont)
     case("reject_pingfang",
          (not res["ok"]) and any("PingFang" in e for e in res["errors"]),
@@ -329,7 +339,7 @@ def _selftest(bundle_dir, TTFont):
     # 5. Generic sans-serif / cursive token -> reject.
     tmp, _, _ = make_fixture()
     bad_decl = {"zh_chain": ["LXGW WenKai"],
-                "en_chain": ["Caveat", "cursive"]}
+                "en_chain": [primary_en, "cursive"]}
     res = run_check(str(tmp), manifest_name, "test", bad_decl, False, TTFont)
     case("reject_generic_fallback",
          (not res["ok"]) and any(("cursive" in e or "generic" in e) for e in res["errors"]),
@@ -338,7 +348,7 @@ def _selftest(bundle_dir, TTFont):
     # 6. Secondary enters chain without QA approval -> reject.
     tmp, _, _ = make_fixture()
     bad_decl = {"zh_chain": ["LXGW WenKai"],
-                "en_chain": ["Caveat", "Patrick Hand"],
+                "en_chain": [primary_en, secondary_en],
                 "secondary_qa_approved": False}
     res = run_check(str(tmp), manifest_name, "test", bad_decl, False, TTFont)
     case("reject_secondary_without_qa",

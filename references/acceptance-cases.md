@@ -47,7 +47,8 @@
 - manifest `fonts` 条目引用未捆绑文件，或声明 sha256 与捆绑清单不符：必须拒绝。
 - 同形状字体字段在 V1 夹具下不触发新门：V1 旧 Purisa/Noto 口径冻结，照常通过旧四必备校验；V1 不调用 `check_v2_fonts.py`。
 - cmap 预检（`scripts/check_v2_fonts.py`，V2-only）：选题用字不在捆绑 cmap（未分配码位 U+10FFFF、三栈都缺的符号 U+2017）→ 列出 missing_glyph 并非零退出，preflight fail，不自动回落；helper 依赖 fontTools，缺失时明确 environment_error 非零退出，不静默 pass。
-- 回退链合法性：中文链出现 `PingFang SC`/`Kaiti SC`/`STKaiti`/serif/sans/system-ui 等系统或 generic 面孔，或英文链出现 `cursive`/系统手写/未登记家族：必须拒绝；`Patrick Hand` 未标记 QA 通过即入英文链：必须拒绝。
+- 新 V2 字体默认：`fonts-manifest.json` 的 `primary-en` 必须为 `Patrick Hand`，`secondary-en` 为 `Caveat`；`sketch.v2_font_stack("en")` 默认仅返回 Patrick Hand，英文系数 1.03。固定字样 `assets/font-anchor-patrick-hand.png` 可打开，与第一款“harness 循环”相同；旧封面/V1不自动重做。
+- 回退链合法性：中文链出现 `PingFang SC`/`Kaiti SC`/`STKaiti`/serif/sans/system-ui 等系统或 generic 面孔，或英文链出现 `cursive`/系统手写/未登记家族：必须拒绝；`Caveat` 作为备用未标记 QA 通过即入英文链：必须拒绝。
 - 零丢字：run 拆分后，ASCII 行尾词、空白行尾、中英转换处拼接结果与原文逐字一致；尾 run 必须 flush。
 - 渲染人工门：整段中文回落到黑体/无衬线、英文粗黑过大、中文误入英文手写体出现方框或缺字、个别缺字兜底范围未在 style_check 证据记录：不可通过 style_check。机器只核登记、捆绑哈希、cmap 覆盖与链规则，不判字体气质、笔画均衡与像素可读性。
 - 390px 宽度真实预览短注仍可读；长标题换行/提炼，不靠压小字号硬塞。

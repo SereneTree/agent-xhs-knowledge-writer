@@ -1,5 +1,15 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
+  "defaults": {
+    "zh": "LXGW WenKai",
+    "en": "Patrick Hand",
+    "en_em_coefficient": 1.03,
+    "en_chain": ["Patrick Hand"],
+    "sample_asset": "assets/font-anchor-patrick-hand.png",
+    "sample_text": "harness 循环",
+    "sample_en_px": 124,
+    "sample_zh_px": 120
+  },
   "scope": "V2 cover typography bundle only; V1 frozen legacy fonts are unchanged.",
   "license": "All bundled fonts are licensed under SIL Open Font License 1.1; keep the corresponding license file beside each font. Reserved Font Names must not be removed from derived copies.",
   "fonts": [
@@ -16,7 +26,7 @@
       "sha256": "2d73eea94ad808999d90c0000c239a84a33b09d4bc6ab6c5b8bbf1eda8a7fc8b"
     },
     {
-      "role": "primary-en",
+      "role": "secondary-en",
       "family": "Caveat",
       "file": "Caveat-Regular.ttf",
       "weight": 400,
@@ -29,7 +39,7 @@
       "sha256": "82fad9e24f3ad5147520c07b5fa5be6dc97801de05749d26e4d933cb1bf9adf0"
     },
     {
-      "role": "secondary-en",
+      "role": "primary-en",
       "family": "Patrick Hand",
       "file": "PatrickHand-Regular.ttf",
       "weight": 400,

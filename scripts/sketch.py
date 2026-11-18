@@ -10,13 +10,13 @@ import random
 # V2 bundled handwritten pair (see assets/fonts/fonts-manifest.json).
 # Regular weight only; no synthesized bold. Chinese stack is the bundled
 # LXGW WenKai primary only; no silent kai/serif/sans fallback. English stack
-# bundled Caveat primary -> Patrick Hand secondary; no generic cursive.
+# bundled Patrick Hand primary; Caveat is explicit/QA-approved only.
 V2_FONT_ZH = "LXGW WenKai"
-V2_FONT_EN_PRIMARY = "Caveat"
-V2_FONT_EN_SECONDARY = "Patrick Hand"
-# English relative em coefficients, fixed from the final QA sample.
+V2_FONT_EN_PRIMARY = "Patrick Hand"
+V2_FONT_EN_SECONDARY = "Caveat"
+# English relative em coefficients, fixed from the user-selected first sample.
 V2_EN_COEF_PRIMARY = 1.03
-V2_EN_COEF_SECONDARY = 0.96
+V2_EN_COEF_SECONDARY = 1.03
 
 
 def _is_zh(ch):
@@ -35,15 +35,19 @@ def _segment(ch):
     return "zh"
 
 
-def v2_font_stack(kind):
+def v2_font_stack(kind, secondary_qa_approved=False):
     """Ordered bundled font stack for a V2 SVG/HTML text run.
 
     kind: "zh" for CJK, "en" for Latin/digits/punctuation. Only bundled
     families are listed; system/generic faces are never automatic fallbacks.
+    The default English stack is Patrick Hand only; adding Caveat requires
+    an explicit approved alternative and secondary_qa_approved=True.
     """
     if kind == "zh":
         return f"'{V2_FONT_ZH}'"
-    return f"'{V2_FONT_EN_PRIMARY}', '{V2_FONT_EN_SECONDARY}'"
+    if secondary_qa_approved:
+        return f"'{V2_FONT_EN_PRIMARY}', '{V2_FONT_EN_SECONDARY}'"
+    return f"'{V2_FONT_EN_PRIMARY}'"
 
 
 class Sketch:
@@ -155,7 +159,7 @@ class Sketch:
         """Emit SVG ``<text>`` splitting CJK vs Latin runs on the V2 pair.
 
         ``en_coef`` is the English relative em scale fixed on the QA sample:
-        Caveat 1.03, Patrick Hand 0.96. Both stacks share the alphabetic
+        Patrick Hand 1.03 (default), Caveat 1.03 (explicit alternative). Both share the alphabetic
         baseline with offset 0; no per-font baseline shift. The trailing run
         is always flushed so no tail ASCII word or whitespace is dropped.
         """

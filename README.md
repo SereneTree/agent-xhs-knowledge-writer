@@ -85,7 +85,7 @@ python "$SKILL/scripts/stage_gate.py" --state "$TOPIC_DIR/workflow.json" migrate
 - **数量规则**：默认 1 单元；提炼层次后仍密度不可读（字号过小、节点重叠、连线交叉、安全区被占）才拆 2 页并列分块；拆分理由与两页分工写入证据文件。双页无独立总览页，共用一份 manifest / diagram_type / 节点清单，`core_points` 逐个标注 `page: 0|1`。
 - **版本路由**：新选题默认 V2（`cover-style-v2.md`，锚点 `assets/cover-anchor-v2.webp`）；用户明确指定才走 V1（`cover-style.md`，旧两张参考资产）。manifest / workflow / cover-review 三处版本一致，未知版本拒绝；V2 每条 cover_files 记录 `version`，V1 可选兼容；历史未标版按 V1 兼容只读，不回写。跨版本重做在独立目录重新 init 另起 revision，不回写旧 release。
 - **可编辑形式**：每个单元 = 可编辑源 + 预览；manifest 用 `covers: [{source, preview}, ...]`（1—2 项），单张兼容 `cover: {source, preview}`。
-- **手绘特征**：框线抖动重描、手绘两笔箭头（不用规整 marker）；V2 中英均明显手写，捆绑配对中文 `LXGW WenKai`、英文主 `Caveat`、备 `Patrick Hand`；中文缺字 preflight fail，不自动回落黑体或系统楷体，英文无 generic cursive；渲染后须逐节点、逐标签、手机宽度复核。
+- **手绘特征**：框线抖动重描、手绘两笔箭头（不用规整 marker）；V2 中英均明显手写，捆绑配对中文 `LXGW WenKai`、英文默认 `Patrick Hand`、备 `Caveat`（仅显式选择，不自动回切）；固定字样锚点 `assets/font-anchor-patrick-hand.png`；中文缺字 preflight fail，不自动回落黑体或系统楷体，英文无 generic cursive；渲染后须逐节点、逐标签、手机宽度复核。
 
 ## 质量门摘要
 

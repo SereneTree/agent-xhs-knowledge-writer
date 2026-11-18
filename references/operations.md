@@ -65,13 +65,13 @@
     "semantic_review": {"status": "pass", "evidence": "逐 core_point 走读：cp1…cp7 按 page 0/1 落到两页，与正文位置一一对应"},
     "coverage_check": {"status": "pass", "evidence": "source_sections 逐章回读自教材与压缩正文；上封面落点与下沉理由逐章登记"},
     "render_mobile": {"status": "pass", "evidence": "手机宽度下逐页检查字/线/配色与 ①→② 阅读顺序"},
-    "style_check": {"status": "pass", "evidence": "对照所用版本对应风格资产，米白手绘风格一致；V2 记录所用捆绑字体配对（如 LXGW WenKai + Caveat）、中英 run 拆分；check_v2_fonts.py 核对捆绑 cmap 覆盖与回退链通过，无缺字、无系统/generic 回落，无整段中文黑体回退"}
+    "style_check": {"status": "pass", "evidence": "对照所用版本对应风格资产，米白手绘风格一致；V2 记录所用捆绑字体配对（如 LXGW WenKai + Patrick Hand）、中英 run 拆分；check_v2_fonts.py 核对捆绑 cmap 覆盖与回退链通过，无缺字、无系统/generic 回落，无整段中文黑体回退"}
    ```
    单单元时 `cover_files` 也可兼容旧写法 `{"source": {...}, "preview": {...}}` 对象；双单元必须用与 `covers` 同序的列表。**V2** 每个源/预览条目都必须带 `"version": "v2"` 且与 release 版本一致，缺字段拒绝；**V1** 条目 `version` 可选，带了就必须与 release 版本一致（旧产物兼容只读）。
    `python "$SKILL/scripts/check_content.py" cover "$TOPIC_DIR/cover.json"`
    V2 另跑字体预检（V1 不调用；依赖 fontTools，缺失时明确非零退出，不静默通过）：
    `python "$SKILL/scripts/check_v2_fonts.py" --bundle "$SKILL/assets/fonts" --text "<封面实际用字清单>"`
-   退出非 0 或报 missing_glyph 不得放行；中文仅捆绑 WenKai、英文仅 Caveat→Patrick，链中不得出现系统/generic 面孔。
+   退出非 0 或报 missing_glyph 不得放行；中文仅捆绑 WenKai、英文默认 Patrick Hand（Caveat 仅显式备选，不自动回切），链中不得出现系统/generic 面孔。
    `python "$SKILL/scripts/stage_gate.py" --state "$TOPIC_DIR/workflow.json" finish --post "$TOPIC_DIR/post.txt" --cover-manifest "$TOPIC_DIR/cover.json" --cover-review "$TOPIC_DIR/cover-review.json" --doc-url "云文档URL" [--cover-version v1|v2]`
    finish 内部按序复核：post_done 前置 → 教材/post 文件未变动 → 教材证据绑定 → doc-url 一致 → 旧 snapshot 实读 body 文件 hash 与当前 post/tb 一致 → cover manifest（封面单元 1—2 个、canvas 竖版 3:4、双页 page 标注、core_points/必备类别/source_sections/coverage_na 完整结构校验、`cover_version` 合法）→ manifest/workflow/review 三处版本一致 → source_revision 绑定 → cover-review 绑定当前 manifest 与各单元源/预览 hash。新选题 workflow 默认 v2；历史未标版产物按 v1 兼容只读，不回写旧记录。
 
@@ -121,7 +121,7 @@
   "legend": "control=执行顺序；data=数据传递",
   "canvas": {"ratio": "3:4", "width": 1080, "height": 1440},
   "cover_version": "v2",
-  "font_pair": {"zh": "LXGW WenKai", "en": "Caveat"},
+  "font_pair": {"zh": "LXGW WenKai", "en": "Patrick Hand"},
   "source_revision": "已登记教材 textbook.txt 的 sha256（shasum -a 256 计算，与登记 sha 一致）",
   "covers": [
     {"source": "cover-1-source.svg", "preview": "cover-1-preview.png"},
